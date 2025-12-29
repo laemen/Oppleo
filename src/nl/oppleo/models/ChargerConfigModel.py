@@ -141,83 +141,80 @@ class ChargerConfigModel(Base):
 
     def save(self):
         self.__logger.debug(".save()")
-        db_session = DbSession()
-        # Prevent expiration after the session is closed or object is made transient or disconnected
-        db_session.expire_on_commit = False
         try:
-            # No need to 'add', committing this class
-            db_session.add(self)
-            db_session.commit()
-            # Keep it detached
-            make_transient(self)
-            make_transient_to_detached(self)
+            with DbSession() as db_session:
+                # Prevent expiration after the session is closed or object is made transient or disconnected
+                db_session.expire_on_commit = False
+                # No need to 'add', committing this class
+                db_session.add(self)
+                db_session.commit()
+                # Keep it detached
+                make_transient(self)
+                make_transient_to_detached(self)
         except InvalidRequestError as e:
             self.__logger.error(".save() - Could not commit to {} table in database".format(self.__tablename__ ), exc_info=True)
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error(".save() - Could not commit to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not commit to {} table in database".format(self.__tablename__ ))
 
 
     def delete(self):
-        db_session = DbSession()
-        db_session.expire_on_commit = True
         try:
-            db_session.delete(self)
-            db_session.commit()
-            # Keep it detached
-            make_transient(self)
-            make_transient_to_detached(self)
+            with DbSession() as db_session:
+                db_session.expire_on_commit = True
+                db_session.delete(self)
+                db_session.commit()
+                # Keep it detached
+                make_transient(self)
+                make_transient_to_detached(self)
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not delete from {} table in database".format(self.__tablename__ ))
 
 
     @staticmethod
     def get_config():
-        db_session = DbSession()
         # Prevent expiration after the session is closed or object is made transient or disconnected
-        db_session.expire_on_commit = False
-        ccm = None
         try:
-            # Should be only one, return last modified
-            ccm = db_session.query(ChargerConfigModel) \
-                            .order_by(desc(ChargerConfigModel.modified_at)) \
-                            .first()
-            # Detach (not transient) from database, allows saving in other Threads
-            # https://docs.sqlalchemy.org/en/14/orm/session_api.html#sqlalchemy.orm.make_transient_to_detached
-            make_transient(ccm)
-            make_transient_to_detached(ccm)
+            with DbSession() as db_session:
+
+                # Should be only one, return last modified
+                ccm = db_session.query(ChargerConfigModel) \
+                                .order_by(desc(ChargerConfigModel.__table__.c.modified_at)) \
+                                .first()
+
+                # Detach (not transient) from database, allows saving in other Threads
+                # https://docs.sqlalchemy.org/en/14/orm/session_api.html#sqlalchemy.orm.make_transient_to_detached
+                make_transient(ccm)
+                make_transient_to_detached(ccm)
+                return ccm
         except InvalidRequestError as e:
-            ChargerConfigModel.__cleanupDbSession(db_session, ChargerConfigModel.__class__)
+            ChargerConfigModel.__logger.error("Could not query from {} table in database".format(ChargerConfigModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             ChargerConfigModel.__logger.error("Could not query from {} table in database".format(ChargerConfigModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(ChargerConfigModel.__tablename__ ))
-        return ccm
 
 
     @staticmethod
     def get_all_configs():
-        db_session = DbSession()
-        # Prevent expiration after the session is closed or object is made transient or disconnected
-        db_session.expire_on_commit = False
-        ccm = None
         try:
-            # Should be only one, return last modified
-            ccm = db_session.query(ChargerConfigModel) \
-                            .order_by(desc(ChargerConfigModel.modified_at))
+            with DbSession() as db_session:
+                # Prevent expiration after the session is closed or object is made transient or disconnected
+                db_session.expire_on_commit = False
+
+                # Should be only one, return last modified
+                ccm = db_session.query(ChargerConfigModel) \
+                                .order_by(desc(ChargerConfigModel.__table__.c.modified_at))
+                return ccm
         except InvalidRequestError as e:
-            ChargerConfigModel.__cleanupDbSession(db_session, ChargerConfigModel.__class__)
+            ChargerConfigModel.__logger.error("Could not query from {} table in database".format(ChargerConfigModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             ChargerConfigModel.__logger.error("Could not query from {} table in database".format(ChargerConfigModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(ChargerConfigModel.__tablename__ ))
-        return ccm
 
 
     def __repr(self):
@@ -232,20 +229,6 @@ class ChargerConfigModel(Base):
                 "modified_at": (str(self.modified_at.strftime("%d/%m/%Y, %H:%M:%S")) if self.modified_at is not None else None)
             }
         )
-
-    """
-        Try to fix any database errors including
-            - sqlalchemy.exc.InvalidRequestError: Can't reconnect until invalid transaction is rolled back
-    """
-    @staticmethod
-    def __cleanupDbSession(db_session=None, cn=None):
-        ChargerConfigModellogger.debug(".__cleanupDbSession() - Trying to cleanup database session, called from {}".format(cn))
-        try:
-            db_session.remove()
-            if db_session.is_active:
-                db_session.rollback()
-        except Exception as e:
-            ChargerConfigModel.__logger.debug(".__cleanupDbSession() - Exception trying to cleanup database session from {}".format(cn), exc_info=True)
 
 
 

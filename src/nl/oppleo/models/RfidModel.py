@@ -87,39 +87,36 @@ class RfidModel(Base):
 
 
     def save(self):
-        db_session = DbSession()
         try:
-            db_session.add(self)
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.add(self)
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not save to {} table in database".format(self.__tablename__ ))
 
 
     def update(self):
-        db_session = DbSession()
         try:
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not commit (update) to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not commit (update) to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not commit (update) to {} table in database".format(self.__tablename__ ))
 
 
     def delete(self):
-        db_session = DbSession()
         try:
-            db_session.delete(self)
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.delete(self)
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not delete from {} table in database".format(self.__tablename__ ))
 
@@ -160,36 +157,33 @@ class RfidModel(Base):
 
     @staticmethod
     def get_all():
-        db_session = DbSession()
-        rfidm = None
         try:
-            rfidm = db_session.query(RfidModel) \
-                              .all()
+            with DbSession() as db_session:
+                rfidm = db_session.query(RfidModel) \
+                                  .all()
+            return rfidm
         except InvalidRequestError as e:
-            RfidModel.__cleanupDbSession(db_session, RfidModel.__class__.__module__)
+            RfidModel.__logger.error("Could not query from table {} in database".format(RfidModel.__tablename__), exc_info=True)
         except Exception as e:
             # Nothing to roll back
-            if RfidModel.__logger is not None and RfidModel.__tablename__ is not None:
-                RfidModel.__logger.error("Could not query from table {} in database".format(RfidModel.__tablename__), exc_info=True)
+            RfidModel.__logger.error("Could not query from table {} in database".format(RfidModel.__tablename__), exc_info=True)
             raise DbException("Could not query from {} table in database".format(RfidModel.__tablename__ ))
-        return rfidm
-
+  
 
     @staticmethod
     def get_one(rfid):
-        db_session = DbSession()
-        rfidm = None
         try:
-            rfidm = db_session.query(RfidModel) \
-                              .filter(RfidModel.rfid == str(rfid)) \
-                              .first()
+            with DbSession() as db_session:
+                rfidm = db_session.query(RfidModel) \
+                                .filter(RfidModel.rfid == str(rfid)) \
+                                .first()
+                return rfidm
         except InvalidRequestError as e:
-            RfidModel.__cleanupDbSession(db_session, RfidModel.__class__.__module__)
+            RfidModel.__logger.error("Could not query from {} table in database".format(RfidModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             RfidModel.__logger.error("Could not query from {} table in database".format(RfidModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(RfidModel.__tablename__ ))
-        return rfidm
 
     def __repr(self):
         return '<id {}>'.format(self.rfid)
@@ -230,19 +224,6 @@ class RfidModel(Base):
                 "vehicle_vin": '' if self.vehicle_vin is None else str(self.vehicle_vin)
             })
 
-    """
-        Try to fix any database errors including
-            - sqlalchemy.exc.InvalidRequestError: Can't reconnect until invalid transaction is rolled back
-    """
-    @staticmethod
-    def __cleanupDbSession(db_session=None, cn=None):
-        RfidModel.__logger.debug("Trying to cleanup database session, called from {}".format(cn))
-        try:
-            db_session.remove()
-            if db_session.is_active:
-                db_session.rollback()
-        except Exception as e:
-            RfidModel.__logger.debug("Exception trying to cleanup database session from {}".format(cn), exc_info=True)
 
 
 class RfidSchema(Schema):

@@ -72,42 +72,39 @@ class OffPeakHoursModel(Base):
         self.modified_at = datetime.now()
 
     def save(self):
-        db_session = DbSession()
         try:
-            db_session.add(self)
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.add(self)
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not save to {} table in database".format(self.__tablename__ ))
 
 
     def delete(self):
-        db_session = DbSession()
         try:
-            db_session.delete(self)
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.delete(self)
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not delete from {} table in database".format(self.__tablename__ ))
 
     @staticmethod
     def deleteId(id):
-        db_session = DbSession()
         try:
-            db_session.query(OffPeakHoursModel) \
-                      .filter(OffPeakHoursModel.id == id) \
-                      .delete()
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.query(OffPeakHoursModel) \
+                        .filter(OffPeakHoursModel.id == id) \
+                        .delete()
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            OffPeakHoursModel.__logger.error("Could not delete {} from {} table in database".format(id, OffPeakHoursModel.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             OffPeakHoursModel.__logger.error("Could not delete {} from {} table in database".format(id, OffPeakHoursModel.__tablename__ ), exc_info=True)
             raise DbException("Could not delete {} from {} table in database".format(id, OffPeakHoursModel.__tablename__ ))
 
@@ -140,16 +137,16 @@ class OffPeakHoursModel(Base):
             self.__logger.debug('is_off_peak() - timestamp is not of type datetime')
             return False
             
-        db_session = DbSession()
         # Weekday?
         r = None
         try:
-            r = db_session.query(OffPeakHoursModel) \
-                          .filter(OffPeakHoursModel.weekday == OffPeakHoursModel.weekdayToEnStr(timestamp.weekday())) \
-                          .filter(OffPeakHoursModel.off_peak_start <= cast(timestamp, Time)) \
-                          .filter(OffPeakHoursModel.off_peak_end >= cast(timestamp, Time))
+            with DbSession() as db_session:
+                r = db_session.query(OffPeakHoursModel) \
+                            .filter(OffPeakHoursModel.weekday == OffPeakHoursModel.weekdayToEnStr(timestamp.weekday())) \
+                            .filter(OffPeakHoursModel.off_peak_start <= cast(timestamp, Time)) \
+                            .filter(OffPeakHoursModel.off_peak_end >= cast(timestamp, Time))
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -162,25 +159,26 @@ class OffPeakHoursModel(Base):
         # Is this a public holiday?
         r = None
         try:
-            r = db_session.query(OffPeakHoursModel) \
-                          .filter(
-                              or_(
-                                  and_(   # Specific holiday
-                                      OffPeakHoursModel.holiday_day == int(timestamp.date().day),
-                                      OffPeakHoursModel.holiday_month == int(timestamp.date().month),
-                                      OffPeakHoursModel.holiday_year == int(timestamp.date().year)
-                                  ),
-                                  and_(   # Recurring holiday
-                                      OffPeakHoursModel.holiday_day == int(timestamp.date().day),
-                                      OffPeakHoursModel.holiday_month == int(timestamp.date().month),
-                                      OffPeakHoursModel.recurring == True
-                                  )
-                              )
-                              ) \
-                          .filter(OffPeakHoursModel.off_peak_start <= cast(timestamp, Time)) \
-                          .filter(OffPeakHoursModel.off_peak_end >= cast(timestamp, Time))
+            with DbSession() as db_session:
+                r = db_session.query(OffPeakHoursModel) \
+                            .filter(
+                                or_(
+                                    and_(   # Specific holiday
+                                        OffPeakHoursModel.holiday_day == int(timestamp.date().day),
+                                        OffPeakHoursModel.holiday_month == int(timestamp.date().month),
+                                        OffPeakHoursModel.holiday_year == int(timestamp.date().year)
+                                    ),
+                                    and_(   # Recurring holiday
+                                        OffPeakHoursModel.holiday_day == int(timestamp.date().day),
+                                        OffPeakHoursModel.holiday_month == int(timestamp.date().month),
+                                        OffPeakHoursModel.recurring == True
+                                    )
+                                )
+                                ) \
+                            .filter(OffPeakHoursModel.off_peak_start <= cast(timestamp, Time)) \
+                            .filter(OffPeakHoursModel.off_peak_end >= cast(timestamp, Time))
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -223,36 +221,34 @@ class OffPeakHoursModel(Base):
     
     @staticmethod
     def get_all():
-        db_session = DbSession()
-        r = None
         try:
-            r = db_session.query(OffPeakHoursModel) \
-                          .all()
+            with DbSession() as db_session:
+                r = db_session.query(OffPeakHoursModel) \
+                              .all()
+                return r
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, OffPeakHoursModel.__class__.__module__)
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             OffPeakHoursModel.__logger.error("Could not query from {} table in database".format(OffPeakHoursModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(OffPeakHoursModel.__tablename__ ))
-        return r
 
     
     @staticmethod
     def get_weekday(weekday):
-        db_session = DbSession()
-        r = None
         try:
-            r = db_session.query(OffPeakHoursModel) \
-                          .filter(OffPeakHoursModel.weekday == OffPeakHoursModel.weekdayToEnStr(weekday)) \
-                          .order_by(OffPeakHoursModel.off_peak_start.asc()) \
-                          .all()
+            with DbSession() as db_session:
+                r = db_session.query(OffPeakHoursModel) \
+                            .filter(OffPeakHoursModel.weekday == OffPeakHoursModel.weekdayToEnStr(weekday)) \
+                            .order_by(OffPeakHoursModel.off_peak_start.asc()) \
+                            .all()
+                return r
         except InvalidRequestError as e:
-            OffPeakHoursModel.__cleanupDbSession(db_session, OffPeakHoursModel.__class__.__module__)
+            OffPeakHoursModel.__logger.error("Could not query from {} table in database".format(OffPeakHoursModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             OffPeakHoursModel.__logger.error("Could not query from {} table in database".format(OffPeakHoursModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(OffPeakHoursModel.__tablename__ ))
-        return r
         
     @staticmethod
     def get_monday():
@@ -408,21 +404,6 @@ class OffPeakHoursModel(Base):
         # test 1st x-mas day 2020 as recurring date (is a Friday)
         ts = ts.replace(day=25, month=12, year=2019)
         is_op = ohm.is_off_peak(ts)        
-
-
-    """
-        Try to fix any database errors including
-            - sqlalchemy.exc.InvalidRequestError: Can't reconnect until invalid transaction is rolled back
-    """
-    @staticmethod
-    def __cleanupDbSession(db_session=None, cn=None):
-        OffPeakHoursModel.__logger.debug("Trying to cleanup database session, called from {}".format(cn))
-        try:
-            db_session.remove()
-            if db_session.is_active:
-                db_session.rollback()
-        except Exception as e:
-            OffPeakHoursModel.__logger.debug("Exception trying to cleanup database session from {}".format(cn), exc_info=True)
 
 
 class ChargerConfigSchema(Schema):

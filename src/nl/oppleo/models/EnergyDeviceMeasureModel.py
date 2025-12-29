@@ -1,4 +1,4 @@
-from typing import ClassVar, Union
+from typing import ClassVar, Union, List
 import datetime
 import logging
 
@@ -6,6 +6,7 @@ from marshmallow import fields, Schema
 
 from sqlalchemy import orm, Column, Integer, String, DateTime, Float, asc, desc, func
 from sqlalchemy import MetaData, Table, select    # For fetchmany
+from sqlalchemy.orm import Query
 
 from sqlalchemy.exc import InvalidRequestError
 
@@ -64,14 +65,13 @@ class EnergyDeviceMeasureModel(Base):
 
 
     def save(self):
-        db_session = DbSession()
         try:
-            db_session.add(self)
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.add(self)
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not save to {} table in database".format(self.__tablename__ ))
 
@@ -86,82 +86,78 @@ class EnergyDeviceMeasureModel(Base):
 
 
     def get_last_n_saved(self, energy_device_id, n):
-        db_session = DbSession()
-        edmm = None
         try:
-            edmm = db_session.query(EnergyDeviceMeasureModel) \
-                             .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
-                             .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
-                             .limit(n) \
-                             .all()
+            with DbSession() as db_session:
+                edmm = db_session.query(EnergyDeviceMeasureModel) \
+                                .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
+                                .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
+                                .limit(n) \
+                                .all()
+                return edmm
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not save to {} table in database".format(EnergyDeviceMeasureModel.__tablename__ ))
-        return edmm
 
     def get_last_n_saved_since(self, energy_device_id, since_ts, n=-1):
-        db_session = DbSession()
-        edmm = None
         try:
-            if n == -1:
-                edmm = db_session.query(EnergyDeviceMeasureModel) \
-                                 .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
-                                 .filter(EnergyDeviceMeasureModel.created_at >= self.date_str_to_datetime(since_ts)) \
-                                 .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
-                                 .all()
-            else:
-                edmm = db_session.query(EnergyDeviceMeasureModel) \
-                                 .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
-                                 .filter(EnergyDeviceMeasureModel.created_at >= self.date_str_to_datetime(since_ts)) \
-                                 .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
-                                 .limit(n) \
-                                 .all()
+            with DbSession() as db_session:
+                if n == -1:
+                    edmm = db_session.query(EnergyDeviceMeasureModel) \
+                                    .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
+                                    .filter(EnergyDeviceMeasureModel.created_at >= self.date_str_to_datetime(since_ts)) \
+                                    .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
+                                    .all()
+                else:
+                    edmm = db_session.query(EnergyDeviceMeasureModel) \
+                                    .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
+                                    .filter(EnergyDeviceMeasureModel.created_at >= self.date_str_to_datetime(since_ts)) \
+                                    .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
+                                    .limit(n) \
+                                    .all()
+                return edmm
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(self.__tablename__ ))
-        return edmm
 
     def get_between(self, energy_device_id, since_ts:datetime=None, until_ts:datetime=None):
-        db_session = DbSession()
-        edmm = None
         try:
-            edmm = db_session.query(EnergyDeviceMeasureModel) \
-                                .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
-                                .filter(EnergyDeviceMeasureModel.created_at >= since_ts) \
-                                .filter(EnergyDeviceMeasureModel.created_at <= until_ts) \
-                                .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
-                                .all()
+            with DbSession() as db_session:
+                edmm = db_session.query(EnergyDeviceMeasureModel) \
+                                    .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
+                                    .filter(EnergyDeviceMeasureModel.created_at >= since_ts) \
+                                    .filter(EnergyDeviceMeasureModel.created_at <= until_ts) \
+                                    .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
+                                    .all()
+                return edmm
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(self.__tablename__ ))
-        return edmm
 
     def get_count_at_timestamp(self, energy_device_id, ts:datetime=None):
-        db_session = DbSession()
-        edmm = None
         try:
-            edmm = db_session.query(func.count(EnergyDeviceMeasureModel.id)) \
-                             .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
-                             .filter(
-                                 EnergyDeviceMeasureModel.created_at >= ts if asc else EnergyDeviceMeasureModel.created_at <= ts
-                                 ) \
-                             .scalar()
+            with DbSession() as db_session:
+                edmm = db_session.query(func.count(EnergyDeviceMeasureModel.id)) \
+                                .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
+                                .filter(
+                                    EnergyDeviceMeasureModel.created_at >= ts if asc else EnergyDeviceMeasureModel.created_at <= ts
+                                    ) \
+                                .scalar()
+            return edmm
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(self.__tablename__ ))
-        return edmm
 
 
     """
@@ -172,19 +168,18 @@ class EnergyDeviceMeasureModel(Base):
     def get_all_as_stream(self, callbackFn, batch_size:int=1000):
 
         try:
-            connection = engine.connect()
-            edmmt = Table( self.__tablename__, MetaData(), autoload=True, autoload_with=engine )
-            edmmQery = select([edmmt]) 
-            ResultProxy = connection.execute(edmmQery)
-            hasMore = True
-            #               .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id)
-            while hasMore:
-                resultBatch = ResultProxy.fetchmany(batch_size)
-                if (resultBatch == []): 
-                    hasMore = False
-                else:
-                    if not callbackFn(resultBatch):
+            with engine.connect() as connection:
+                edmmt = Table(self.__tablename__, MetaData(), autoload_with=engine)
+                stmt = select(edmmt)
+                result = connection.execute(stmt)
+
+                while True:
+                    batch = result.fetchmany(batch_size)
+                    if not batch:
+                        break
+                    if not callbackFn(batch):
                         return False
+            return True
 
         except Exception as e:
             # Nothing to roll back
@@ -193,34 +188,41 @@ class EnergyDeviceMeasureModel(Base):
 
 
     def paginate(self, energy_device_id, offset:int=0, limit:int=0, orderColumn:Column=None, orderDir:str=None):
-        db_session = DbSession()
-        edmm = None
         try:
-            if orderColumn is not None:
-                edmm = db_session.query(EnergyDeviceMeasureModel) \
-                                .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
-                                .order_by(asc(orderColumn) if orderDir=='asc' else desc(orderColumn)) \
-                                .offset(offset) \
-                                .limit(limit)
-            else: 
-                edmm = db_session.query(EnergyDeviceMeasureModel) \
-                                .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
-                                .offset(offset) \
-                                .limit(limit)
+            with DbSession() as db_session:
+                if orderColumn is not None:
+                    edmm = db_session.query(EnergyDeviceMeasureModel) \
+                                    .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
+                                    .order_by(asc(orderColumn) if orderDir=='asc' else desc(orderColumn)) \
+                                    .offset(offset) \
+                                    .limit(limit)
+                else: 
+                    edmm = db_session.query(EnergyDeviceMeasureModel) \
+                                    .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
+                                    .offset(offset) \
+                                    .limit(limit)
+                return edmm
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(self.__tablename__ ))
-        return edmm
 
 
     def get_count(self):
-        db_session = DbSession()
-        rows = db_session.query(func.count(EnergyDeviceMeasureModel.id)).scalar()
-        return rows
 
+        try:
+            with DbSession() as db_session:
+                rows = db_session.query(func.count(EnergyDeviceMeasureModel.id)).scalar()
+                return rows
+
+        except InvalidRequestError as e:
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
+        except Exception as e:
+            # Nothing to roll back
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
+            raise DbException("Could not query from {} table in database".format(self.__tablename__ ))
 
     """
     SELECT edm.created_at, edm.kw_total 
@@ -239,27 +241,28 @@ class EnergyDeviceMeasureModel(Base):
 
 
     def get_end_month_energy_levels(self, energy_device_id):
-        db_session = DbSession()
 
+        emeTs2: List[EnergyDeviceMeasureModel] | Unbound | Query[EnergyDeviceMeasureModel] = None
         try:
-            # Find timestamps of last entry per month
-            emeTs = db_session.query( \
-                        func.max( EnergyDeviceMeasureModel.created_at ) \
-                        .label("created_at") 
-                        )  \
-                    .group_by( \
-                        func.extract( "year", EnergyDeviceMeasureModel.created_at ), \
-                        func.extract( "month", EnergyDeviceMeasureModel.created_at ) \
-                        )
-            # Add row data
-            emeTs2 = db_session.query( EnergyDeviceMeasureModel ).order_by( asc( EnergyDeviceMeasureModel.created_at ) )
-            lastMonthReadingTimestamps = []
-            for timestamp in emeTs:
-                lastMonthReadingTimestamps.append( timestamp.created_at )
-            emeTs2 = emeTs2.filter( EnergyDeviceMeasureModel.created_at.in_( lastMonthReadingTimestamps ) ).all()
+            with DbSession() as db_session:
+                # Find timestamps of last entry per month
+                emeTs = db_session.query( \
+                            func.max( EnergyDeviceMeasureModel.created_at ) \
+                            .label("created_at") 
+                            )  \
+                        .group_by( \
+                            func.extract( "year", EnergyDeviceMeasureModel.created_at ), \
+                            func.extract( "month", EnergyDeviceMeasureModel.created_at ) \
+                            )
+                # Add row data
+                emeTs2 = db_session.query( EnergyDeviceMeasureModel ).order_by( asc( EnergyDeviceMeasureModel.created_at ) )
+                lastMonthReadingTimestamps = []
+                for timestamp in emeTs:
+                    lastMonthReadingTimestamps.append( timestamp.created_at )
+                emeTs2 = emeTs2.filter( EnergyDeviceMeasureModel.created_at.in_( lastMonthReadingTimestamps ) ).all()
 
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -274,7 +277,7 @@ class EnergyDeviceMeasureModel(Base):
                 "Year"              : int(emee.created_at.strftime("%Y")),
                 "MonthStart_Kwh"    : lastValue,
                 "MonthEnd_Kwh"      : emee.kw_total,
-                "MonthUsed_kWh"     : round((emee.kw_total - lastValue)*10)/10
+                "MonthUsed_kWh"     : round((float(emee.kw_total) - lastValue)*10)/10
             })
             lastValue = emee.kw_total
         return eme
@@ -282,20 +285,21 @@ class EnergyDeviceMeasureModel(Base):
 
     def get_usage_since(self, energy_device_id, since_ts):
         self.__logger.debug("get_usage_since() energy_device_id {} since_ts {}".format(energy_device_id, str(since_ts)))
-        db_session = DbSession()
         energy_at_ts = 0
         try:
-            energy_at_ts = db_session.query(EnergyDeviceMeasureModel) \
-                                    .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
-                                    .filter(EnergyDeviceMeasureModel.created_at <= since_ts) \
-                                    .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
-                                    .first()
+            with DbSession() as db_session:
+                energy_at_ts = db_session.query(EnergyDeviceMeasureModel) \
+                                        .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
+                                        .filter(EnergyDeviceMeasureModel.created_at <= since_ts) \
+                                        .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
+                                        .first()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(self.__tablename__ ))
+        
         energy_now = self.get_last_saved(energy_device_id)
         if energy_now is None or energy_at_ts is None:
             self.__logger.warn('get_usage_since() - could not get data from database')
@@ -310,24 +314,23 @@ class EnergyDeviceMeasureModel(Base):
     # returns the created_at value at which the first time thi kwh value was measured
     @staticmethod
     def get_time_of_kwh(energy_device_id, kw_total):
-        db_session = DbSession()
-        edmm = None
         try:
-            edmm = db_session.query(EnergyDeviceMeasureModel) \
-                             .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
-                             .filter(EnergyDeviceMeasureModel.kw_total == kw_total) \
-                             .filter(EnergyDeviceMeasureModel.a_l1 == 0) \
-                             .filter(EnergyDeviceMeasureModel.a_l2 == 0) \
-                             .filter(EnergyDeviceMeasureModel.a_l3 == 0) \
-                             .order_by(EnergyDeviceMeasureModel.created_at.asc()) \
-                             .first()
+            with DbSession() as db_session:
+                edmm = db_session.query(EnergyDeviceMeasureModel) \
+                                .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
+                                .filter(EnergyDeviceMeasureModel.kw_total == kw_total) \
+                                .filter(EnergyDeviceMeasureModel.a_l1 == 0) \
+                                .filter(EnergyDeviceMeasureModel.a_l2 == 0) \
+                                .filter(EnergyDeviceMeasureModel.a_l3 == 0) \
+                                .order_by(EnergyDeviceMeasureModel.created_at.asc()) \
+                                .first()
+                return edmm.created_at if edmm is not None else None 
         except InvalidRequestError as e:
-            EnergyDeviceMeasureModel.__cleanupDbSession(db_session, EnergyDeviceMeasureModel.__module__)
+            EnergyDeviceMeasureModel.__logger.error("Could not query from {} table in database".format(EnergyDeviceMeasureModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             EnergyDeviceMeasureModel.__logger.error("Could not query from {} table in database".format(EnergyDeviceMeasureModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(EnergyDeviceMeasureModel.__tablename__ ))
-        return edmm.created_at if edmm is not None else None 
 
 
     def get_created_at_str(self):
@@ -418,20 +421,6 @@ class EnergyDeviceMeasureModel(Base):
             "hz": str(self.hz)
         })
 
-
-    """
-        Try to fix any database errors including
-            - sqlalchemy.exc.InvalidRequestError: Can't reconnect until invalid transaction is rolled back
-    """
-    @staticmethod
-    def __cleanupDbSession(db_session=None, cn=None):
-        EnergyDeviceMeasureModel.__logger.debug("Trying to cleanup database session, called from {}".format(cn))
-        try:
-            db_session.remove()
-            if db_session.is_active:
-                db_session.rollback()
-        except Exception as e:
-            EnergyDeviceMeasureModel.__logger.debug("Exception trying to cleanup database session from {}".format(cn), exc_info=True)
 
 
 class EnergyDeviceMeasureSchema(Schema):

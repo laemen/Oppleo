@@ -61,106 +61,100 @@ class KeyValueStoreModel(Base):
 
 
     def save(self):
-        db_session = DbSession()
         try:
-            db_session.add(self)
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.add(self)
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not save to {} table in database".format(self.__tablename__ ))
 
 
     def update(self):
-        db_session = DbSession()
         try:
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not commit (update) to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not commit (update) to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not commit (update) to {} table in database".format(self.__tablename__ ))
 
 
     def delete(self):
-        db_session = DbSession()
         try:
-            db_session.delete(self)
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.delete(self)
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not delete from {} table in database".format(self.__tablename__ ))
 
 
     @staticmethod
     def get_value(kvstore:str=None, scope:str=None, key:str=None):
-        db_session = DbSession()
-        kvsm = None
         try:
-            kvsm = db_session.query(KeyValueStoreModel) \
-                             .filter(KeyValueStoreModel.kvstore == kvstore) \
-                             .filter(KeyValueStoreModel.scope == scope) \
-                             .filter(KeyValueStoreModel.key == key) \
-                             .first()
+            with DbSession() as db_session:
+                kvsm = db_session.query(KeyValueStoreModel) \
+                                .filter(KeyValueStoreModel.kvstore == kvstore) \
+                                .filter(KeyValueStoreModel.scope == scope) \
+                                .filter(KeyValueStoreModel.key == key) \
+                                .first()
+                return kvsm
         except InvalidRequestError as e:
-            KeyValueStoreModel.__cleanupDbSession(db_session, KeyValueStoreModel.__class__.__module__)
+            KeyValueStoreModel.__logger.error("Could not query from {} table in database ({})".format(KeyValueStoreModel.__tablename__, str(e)), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             KeyValueStoreModel.__logger.error("Could not query from {} table in database".format(KeyValueStoreModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(KeyValueStoreModel.__tablename__ ))
-        return kvsm
 
 
     @staticmethod
     def get_scope(kvstore:str=None, scope:str=None):
-        db_session = DbSession()
-        kvsm = None
         try:
-            kvsm = db_session.query(KeyValueStoreModel) \
-                             .filter(KeyValueStoreModel.kvstore == kvstore) \
-                             .filter(KeyValueStoreModel.scope == scope) \
-                             .all()
+            with DbSession() as db_session:
+                kvsm = db_session.query(KeyValueStoreModel) \
+                                .filter(KeyValueStoreModel.kvstore == kvstore) \
+                                .filter(KeyValueStoreModel.scope == scope) \
+                                .all()
+                return kvsm
         except InvalidRequestError as e:
-            KeyValueStoreModel.__cleanupDbSession(db_session, KeyValueStoreModel.__class__.__module__)
+            KeyValueStoreModel.__logger.error("Could not query from {} table in database".format(KeyValueStoreModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             KeyValueStoreModel.__logger.error("Could not query from {} table in database".format(KeyValueStoreModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(KeyValueStoreModel.__tablename__ ))
-        return kvsm
 
 
     @staticmethod
     def get_kvstore(kvstore:str=None):
-        db_session = DbSession()
-        kvsm = None
         try:
-            kvsm = db_session.query(KeyValueStoreModel) \
-                             .filter(KeyValueStoreModel.kvstore == kvstore) \
-                             .all()
+            with DbSession() as db_session:
+                kvsm = db_session.query(KeyValueStoreModel) \
+                                .filter(KeyValueStoreModel.kvstore == kvstore) \
+                                .all()
+                return kvsm
         except InvalidRequestError as e:
-            KeyValueStoreModel.__cleanupDbSession(db_session, KeyValueStoreModel.__class__.__module__)
+            KeyValueStoreModel.__logger.error("Could not query from {} table in database".format(KeyValueStoreModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             KeyValueStoreModel.__logger.error("Could not query from {} table in database".format(KeyValueStoreModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(KeyValueStoreModel.__tablename__ ))
-        return kvsm
 
 
     @staticmethod
     def get_all():
-        db_session = DbSession()
-        rfidm = None
         try:
-            rfidm = db_session.query(KeyValueStoreModel) \
-                              .all()
+            with DbSession() as db_session:
+                rfidm = db_session.query(KeyValueStoreModel) \
+                                .all()
+            return rfidm
         except InvalidRequestError as e:
-            KeyValueStoreModel.__cleanupDbSession(db_session, KeyValueStoreModel.__class__.__module__)
+            KeyValueStoreModel.__logger.error("Could not query from {} table in database".format(KeyValueStoreModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             KeyValueStoreModel.__logger.error("Could not query from {} table in database".format(KeyValueStoreModel.__tablename__ ), exc_info=True)
@@ -181,17 +175,16 @@ class KeyValueStoreModel(Base):
         if key_value_obj is not None:
             key_value_obj.kvstore = kvstore if kvstore is not None else key_value_obj.kvstore
             key_value_obj.scope = scope if scope is not None else key_value_obj.scope
-        db_session = DbSession()
         try:
-            if key_value_list is not None:
-                db_session.add_all(key_value_list)
-            if key_value_obj is not None:
-                db_session.add(key_value_obj)
-            db_session.commit()
+            with DbSession() as db_session:
+                if key_value_list is not None:
+                    db_session.add_all(key_value_list)
+                if key_value_obj is not None:
+                    db_session.add(key_value_obj)
+                db_session.commit()
         except InvalidRequestError as e:
-            KeyValueStoreModel.__cleanupDbSession(db_session, KeyValueStoreModel.__class__.__module__)
+            KeyValueStoreModel.__logger.error("Could not save to {} table in database".format(KeyValueStoreModel.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             KeyValueStoreModel.__logger.error("Could not save to {} table in database".format(KeyValueStoreModel.__tablename__ ), exc_info=True)
             raise DbException("Could not save to {} table in database".format(KeyValueStoreModel.__tablename__ ))
 
@@ -208,20 +201,6 @@ class KeyValueStoreModel(Base):
                 "kv_created_at": (str(self.kv_created_at.strftime("%d/%m/%Y, %H:%M:%S")) if self.created_at is not None else None),
                 "kv_modified_at": (str(self.kv_modified_at.strftime("%d/%m/%Y, %H:%M:%S")) if self.last_used_at is not None else None)
             })
-
-    """
-        Try to fix any database errors including
-            - sqlalchemy.exc.InvalidRequestError: Can't reconnect until invalid transaction is rolled back
-    """
-    @staticmethod
-    def __cleanupDbSession(db_session=None, cn=None):
-        KeyValueStoreModel.__logger.debug("Trying to cleanup database session, called from {}".format(cn))
-        try:
-            db_session.remove()
-            if db_session.is_active:
-                db_session.rollback()
-        except Exception as e:
-            KeyValueStoreModel.__logger.debug("Exception trying to cleanup database session from {}".format(cn), exc_info=True)
 
  
 class RfidSchema(Schema):

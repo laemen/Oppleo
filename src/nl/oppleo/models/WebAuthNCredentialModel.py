@@ -149,21 +149,20 @@ class WebAuthNCredentialModel(Base):
             WebAuthNCredentialModel.__logger.debug("No credential_id or credential_owner.")
             return None
         
-        registeredCredential = None
-        db_session = DbSession()
         try:
-            registeredCredential = db_session.query(WebAuthNCredentialModel) \
-                                                .filter(WebAuthNCredentialModel.credential_owner == str(credential_owner)) \
-                                                .filter(WebAuthNCredentialModel.credential_id == str(credential_id)) \
-                                                .first()
+            with DbSession() as db_session:
+                registeredCredential = db_session.query(WebAuthNCredentialModel) \
+                                                    .filter(WebAuthNCredentialModel.credential_owner == str(credential_owner)) \
+                                                    .filter(WebAuthNCredentialModel.credential_id == str(credential_id)) \
+                                                    .first()
+                return registeredCredential
         except InvalidRequestError as e:
-            WebAuthNCredentialModel.__cleanupDbSession(db_session, WebAuthNCredentialModel.__class__.__module__)
+            WebAuthNCredentialModel.__logger.error("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             WebAuthNCredentialModel.__logger.error("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ))
 
-        return registeredCredential
 
 
     """
@@ -190,38 +189,35 @@ class WebAuthNCredentialModel(Base):
 
     def save(self):
         self.__logger.debug(".save()")
-        db_session = DbSession()
-        # Prevent expiration after the session is closed or object is made transient or disconnected
-        db_session.expire_on_commit = False
         try:
-            # No need to 'add', committing this class
-            db_session.add(self)
-            db_session.commit()
-            # Keep it detached
-            make_transient(self)
-            make_transient_to_detached(self)
+            with DbSession() as db_session:
+                # Prevent expiration after the session is closed or object is made transient or disconnected
+                db_session.expire_on_commit = False
+                # No need to 'add', committing this class
+                db_session.add(self)
+                db_session.commit()
+                # Keep it detached
+                make_transient(self)
+                make_transient_to_detached(self)
         except InvalidRequestError as e:
             self.__logger.error(".save() - Could not commit to {} table in database".format(self.__tablename__ ), exc_info=True)
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error(".save() - Could not commit to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not commit to {} table in database".format(self.__tablename__ ))
 
 
     def delete(self):
-        db_session = DbSession()
-        db_session.expire_on_commit = True
         try:
-            db_session.delete(self)
-            db_session.commit()
-            # Keep it detached
-            make_transient(self)
-            make_transient_to_detached(self)
+            with DbSession() as db_session:
+                db_session.expire_on_commit = True
+                db_session.delete(self)
+                db_session.commit()
+                # Keep it detached
+                make_transient(self)
+                make_transient_to_detached(self)
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not delete from {} table in database".format(self.__tablename__ ))
 
@@ -232,20 +228,19 @@ class WebAuthNCredentialModel(Base):
     def getRegisteredCredentialCount(credential_owner:Union[str, None]=None) -> int:
         WebAuthNCredentialModel.__logger.debug(".getRegisteredCredentialCount()")
 
-        db_session = DbSession()
-        credentialRegistrations = []
         try:
-            credentialRegistrations = db_session.query(WebAuthNCredentialModel) \
-                                                .filter(WebAuthNCredentialModel.credential_owner == str(credential_owner)) \
-                                                .all()
+            with DbSession() as db_session:
+                credentialRegistrations = db_session.query(WebAuthNCredentialModel) \
+                                                    .filter(WebAuthNCredentialModel.credential_owner == str(credential_owner)) \
+                                                    .all()
+                return len(credentialRegistrations)
         except InvalidRequestError as e:
-            WebAuthNCredentialModel.__cleanupDbSession(db_session, WebAuthNCredentialModel.__class__.__module__)
+            WebAuthNCredentialModel.__logger.error("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             WebAuthNCredentialModel.__logger.error("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ))
 
-        return len(credentialRegistrations)
 
 
     """
@@ -263,20 +258,19 @@ class WebAuthNCredentialModel(Base):
     def getRegisteredCredentialRegistrations(credential_owner:Union[str, None]=None):
         WebAuthNCredentialModel.__logger.debug(".getRegisteredCredentialRegistrations()")
 
-        db_session = DbSession()
-        credentialRegistrations = []
         try:
-            credentialRegistrations = db_session.query(WebAuthNCredentialModel) \
-                                                .filter(WebAuthNCredentialModel.credential_owner == str(credential_owner)) \
-                                                .all()
+            with DbSession() as db_session:
+                credentialRegistrations = db_session.query(WebAuthNCredentialModel) \
+                                                    .filter(WebAuthNCredentialModel.credential_owner == str(credential_owner)) \
+                                                    .all()
+                return credentialRegistrations
         except InvalidRequestError as e:
-            WebAuthNCredentialModel.__cleanupDbSession(db_session, WebAuthNCredentialModel.__class__.__module__)
+            WebAuthNCredentialModel.__logger.error("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             WebAuthNCredentialModel.__logger.error("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ))
 
-        return credentialRegistrations
 
     """
         Returns a list of registered credential_ids for this user
@@ -306,26 +300,25 @@ class WebAuthNCredentialModel(Base):
             WebAuthNCredentialModel.__logger.debug("No credential_id provided (None)")
             return
 
-        db_session = DbSession()
-        credentialRegistration = None
         try:
-            if username is None:
-                credentialRegistration = db_session.query(WebAuthNCredentialModel) \
-                                                .filter(WebAuthNCredentialModel.credential_id == str(credential_id)) \
-                                                .first()
-            else:
-                credentialRegistration = db_session.query(WebAuthNCredentialModel) \
-                                                .filter(WebAuthNCredentialModel.credential_id == str(credential_id)) \
-                                                .filter(WebAuthNCredentialModel.credential_owner == str(username)) \
-                                                .first()
+            with DbSession() as db_session:
+                if username is None:
+                    credentialRegistration = db_session.query(WebAuthNCredentialModel) \
+                                                    .filter(WebAuthNCredentialModel.credential_id == str(credential_id)) \
+                                                    .first()
+                else:
+                    credentialRegistration = db_session.query(WebAuthNCredentialModel) \
+                                                    .filter(WebAuthNCredentialModel.credential_id == str(credential_id)) \
+                                                    .filter(WebAuthNCredentialModel.credential_owner == str(username)) \
+                                                    .first()
+                return credentialRegistration
         except InvalidRequestError as e:
-            WebAuthNCredentialModel.__cleanupDbSession(db_session, WebAuthNCredentialModel.__class__.__module__)
+            WebAuthNCredentialModel.__logger.error("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             WebAuthNCredentialModel.__logger.error("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(WebAuthNCredentialModel.__tablename__ ))
 
-        return credentialRegistration
 
 
     def __repr(self):
@@ -356,22 +349,6 @@ class WebAuthNCredentialModel(Base):
         me["created_at"] = (str(self.created_at.strftime("%d/%m/%Y, %H:%M:%S")) if self.created_at is not None else None)
         me["modified_at"] = (str(self.modified_at.strftime("%d/%m/%Y, %H:%M:%S")) if self.modified_at is not None else None)
         return me
-
-
-    """
-        Try to fix any database errors including
-            - sqlalchemy.exc.InvalidRequestError: Can't reconnect until invalid transaction is rolled back
-    """
-    @staticmethod
-    def __cleanupDbSession(db_session=None, cn=None):
-
-        WebAuthNCredentialModel.__logger.debug(".__cleanupDbSession() - Trying to cleanup database session, called from {}".format(cn))
-        try:
-            db_session.remove()
-            if db_session.is_active:
-                db_session.rollback()
-        except Exception as e:
-            WebAuthNCredentialModel.__logger.debug(".__cleanupDbSession() - Exception trying to cleanup database session from {}".format(cn), exc_info=True)
 
 
 

@@ -41,57 +41,55 @@ class AccesslogModel(Base):
         self.allow = data.get('allow', False)
 
     def save(self):
-        db_session = DbSession()
         try:
-            db_session.add(self)
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.add(self)
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not save to {} table in database".format(self.__tablename__ ))
 
 
     def update(self):
-        db_session = DbSession()
         try:
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not commit (update) to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not commit (update) to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not commit (update) to {} table in database".format(self.__tablename__ ))
 
 
     def delete(self):
-        db_session = DbSession()
         try:
-            db_session.delete(self)
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.delete(self)
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not delete from {} table in database".format(self.__tablename__ ))
 
 
     @staticmethod
     def get_all():
-        db_session = DbSession()
-        alm = None
         try:
-            alm = db_session.query(AccesslogModel) \
-                                   .all()
+            with DbSession() as db_session:
+                alm = None
+                alm = db_session.query(AccesslogModel) \
+                                         .all()
+                return alm
         except InvalidRequestError as e:
-            AccesslogModel.__cleanupDbSession(db_session, AccesslogModel.__class__.__module__)
+            AccesslogModel.__logger.error("Could not query from {} table in database".format(AccesslogModel.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back
             AccesslogModel.__logger.error("Could not query from {} table in database".format(AccesslogModel.__tablename__ ), exc_info=True)
             raise DbException("Could not query from {} table in database".format(AccesslogModel.__tablename__ ))
-        return alm
+
 
     def __repr(self):
         return '<id {}>'.format(self.id)
@@ -105,20 +103,6 @@ class AccesslogModel(Base):
                 "visits": str(self.visits),
                 "days": str(self.days)
             })
-
-    """
-        Try to fix any database errors including
-            - sqlalchemy.exc.InvalidRequestError: Can't reconnect until invalid transaction is rolled back
-    """
-    @staticmethod
-    def __cleanupDbSession(db_session=None, cn=None):
-        AccesslogModel.__loggerlogger.debug("Trying to cleanup database session, called from {}".format(cn))
-        try:
-            db_session.remove()
-            if db_session.is_active:
-                db_session.rollback()
-        except Exception as e:
-            AccesslogModel.__logger.debug("Exception trying to cleanup database session from {}".format(cn), exc_info=True)
 
 
 class AccesslogSchema(Schema):

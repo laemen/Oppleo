@@ -45,31 +45,29 @@ class User(Base):
 
     @staticmethod
     def get(username):
-        db_session = DbSession()
-        user = None
         try:
-            # Should be only one, return last modified
-            user = db_session.query(User) \
-                            .filter(User.username == username) \
-                            .first()
+            with DbSession() as db_session:
+                # Should be only one, return last modified
+                user = db_session.query(User) \
+                                .filter(User.username == username) \
+                                .first()
+                return user
         except InvalidRequestError as e:
-            User.__cleanupDbSession(db_session, User.__class__)
+            User.__logger.error("Could not query {} table in database".format(User.__tablename__ ), exc_info=True)
         except Exception as e:
             # Nothing to roll back 
             User.__logger.error("Could not query {} table in database".format(User.__tablename__ ), exc_info=True)
             raise DbException("Could not query {} table in database".format(User.__tablename__ ))
-        return user
 
 
     def save(self) -> None:
-        db_session = DbSession()
         try:
-            db_session.add(self)
-            db_session.commit()
+            with DbSession() as db_session:
+                db_session.add(self)
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not commit to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not commit to {} table in database".format(self.__tablename__ ))
 
@@ -120,58 +118,42 @@ class User(Base):
     # Return all users
     @staticmethod
     def all():
-        db_session = DbSession()
         try:
-            # Should be only one
-            return db_session.query(User).all()
+            with DbSession() as db_session:
+                # Should be only one
+                return db_session.query(User).all()
         except Exception as e:
             User.__logger.error("Could not query to {} table in database".format(User.__tablename__ ), exc_info=True)
-        return None
-
+            raise DbException("Could not query to {} table in database".format(User.__tablename__ ))
 
     # Delete this user
     def delete(self):
-        db_session = DbSession()
         try:
-            # Should be only one
-            num_rows_deleted = db_session.query(User) \
-                                         .filter(User.username == self.username) \
-                                         .delete()
-            db_session.commit()
+            with DbSession() as db_session:
+                # Should be only one
+                num_rows_deleted = db_session.query(User) \
+                                            .filter(User.username == self.username) \
+                                            .delete()
+                db_session.commit()
         except InvalidRequestError as e:
-            self.__cleanupDbSession(db_session, self.__class__.__module__)
+            self.__logger.error("Could not commit to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             self.__logger.error("Could not commit to {} table in database".format(self.__tablename__ ), exc_info=True)
             raise DbException("Could not commit to {} table in database".format(self.__tablename__ ))
 
     # Delete all users
     @staticmethod
     def delete_all():
-        db_session = DbSession()
         try:
-            # Should be only one
-            num_rows_deleted = db_session.query(User) \
-                                         .delete()
-            db_session.commit()
+            with DbSession() as db_session:
+                # Should be only one
+                num_rows_deleted = db_session.query(User) \
+                                             .delete()
+                db_session.commit()
         except InvalidRequestError as e:
-            User.__cleanupDbSession(db_session, User.__class__.__module__)
+            User.__logger.error("Could not commit to {} table in database".format(User.__tablename__ ), exc_info=True)
         except Exception as e:
-            db_session.rollback()
             User.__logger.error("Could not commit to {} table in database".format(User.__tablename__ ), exc_info=True)
             raise DbException("Could not commit to {} table in database".format(User.__tablename__ ))
 
 
-    """
-        Try to fix any database errors including
-            - sqlalchemy.exc.InvalidRequestError: Can't reconnect until invalid transaction is rolled back
-    """
-    @staticmethod
-    def __cleanupDbSession(db_session=None, cn=None):
-        User.__logger.debug("Trying to cleanup database session, called from {}".format(cn))
-        try:
-            db_session.remove()
-            if db_session.is_active:
-                db_session.rollback()
-        except Exception as e:
-            User.__logger.debug("Exception trying to cleanup database session from {}".format(cn), exc_info=True)
