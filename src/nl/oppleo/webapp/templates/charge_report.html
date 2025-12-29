@@ -1,0 +1,794 @@
+{% extends "template.html" %}
+{% block title %}Laadrapport{% endblock %}
+{% block jquery %} 
+  {% include 'includes/include.jquery-3.3.1.html' %}
+{% endblock %} 
+{% block head %}
+  {{ super() }}
+
+  <!-- DataTables CSS -->
+  <link href="{{ url_for('static', filename='plugins/datatables/1.10.20/jquery.dataTables.min.css') }}" rel="stylesheet" type="text/css" />
+  <link href="{{ url_for('static', filename='plugins/datatables/buttons.bootstrap4.min.css') }}" rel="stylesheet" type="text/css" />
+  <link href="{{ url_for('static', filename='plugins/buttons/1.6.1/buttons.dataTables.min.css') }}" rel="stylesheet" type="text/css" />
+
+  <!-- Responsive datatable examples -->
+  <link href="{{ url_for('static', filename='plugins/datatables/responsive.bootstrap4.min.css') }}" rel="stylesheet" type="text/css" />
+   
+  <!-- Required datatable js -->
+  <script src="{{ url_for('static', filename='plugins/datatables/1.10.20/jquery.dataTables.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/datatables/dataTables.bootstrap4.min.js') }}"></script>
+  <!-- Buttons -->
+  <script src="{{ url_for('static', filename='plugins/buttons/1.6.1/dataTables.buttons.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/datatables/buttons.bootstrap4.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/buttons/1.6.1/buttons.flash.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/jszip/3.1.3/jszip.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/pdfmake/0.1.53/pdfmake.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/pdfmake/0.1.53/vfs_fonts.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/buttons/1.6.1/buttons.html5.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/buttons/1.6.1/buttons.print.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/datatables/buttons.colVis.min.js') }}"></script>
+
+  <!-- Responsive -->
+  <script src="{{ url_for('static', filename='plugins/datatables/dataTables.responsive.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/datatables/responsive.bootstrap4.min.js') }}"></script>
+  
+  <!-- Socket IO -->
+  <script src="{{ url_for('static', filename='plugins/socket.io/4.7.2/socket.io.min.js') }}"></script>
+
+  <style>
+    .paginate_button {
+        padding: 0px !important;
+    }
+    tbody td {
+      padding: 2px 2px !important;
+      text-align: center;
+      background-color: #36404a;
+    }
+    div .dataTables_info {
+      color: #98a6ad !important;
+      margin-left: 5px;
+    }
+    div .dt-buttons {
+      margin-bottom: 10px;
+      margin-left: 3px;
+    }
+    div .dataTables_length {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+    }
+    div .dataTables_length label {
+      font-size: smaller;
+      margin-left: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+      color: #98a6ad !important;
+    }
+    div .dataTables_length label select {
+      width: 80px;
+      margin-left: 10px;
+      margin-right: 10px;
+    }
+  </style>
+
+  <script>
+    // returns 1-based month (1 = Jan), where Javascript Date defaults to 0-based month
+    function timestamp() {
+      d = new Date();
+      return (d.getFullYear() + "-" + 
+             ((d.getMonth()+1)<10?'0':'') + (d.getMonth()+1) + "-" +      // convert to 1-based month
+             (d.getDate()<10?'0':'') + d.getDate() + '.' + 
+             (d.getHours()<10?'0':'') + d.getHours() + ":" + 
+             (d.getMinutes()<10?'0':'') + d.getMinutes() + "." + 
+             (d.getSeconds()<10?'0':'') + d.getSeconds() + '.' + 
+             (d.getMilliseconds()<100?'0':'') + (d.getMilliseconds()<10?'0':'') + d.getMilliseconds()
+      )
+    }
+    let rfidTokens = {}
+    let dt = undefined
+    let unfilteredData = null
+    let filters = []
+    function getRfidTokens() {
+      console.log(timestamp() + ' getRfidTokens()')            
+      $.ajax({
+        type		    : 'GET',
+        url			    : '/rfid_tokens/',
+        contentType : "application/json",
+        dataType	  : 'json',
+        headers     : { 'ignore-login-next': 'true' },
+        encode		  : true
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log(data)
+        $.each(data, function(i,val) {
+          rfidTokens[val.rfid] = val
+        })
+        // Force redraw
+        dt.rows().invalidate().draw()
+        $('[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+        // Redraw filter select
+        $("select#filterReport > option").each(function() {
+          if (this.value in rfidTokens && isData(rfidTokens[this.value].name)) {
+            this.text = rfidTokens[this.value].name
+          }
+        })
+      })
+      .fail(function() {
+        autoHideNotify('error', 'top-left', 'Probleem', 'RFID Token data niet beschikbaar.')
+      })
+      .always(function() {
+      })
+    }
+    function isData(val) {
+      return (val != undefined && val != null && val !== "None" && val !== '')
+    }
+    function addOnNewline(str, addition, newline) {
+      return (!str.endsWith(newline) && str.length > 0) ? str + newline + addition : str + addition
+    }
+
+    function filterTable() {
+      // Start with whole table
+      dt.clear()
+      $.each(unfilteredData, function(index, row) {
+        dt.row.add(row)
+      })
+      dt.draw()
+      // Apply all filters on token and on energy_device_id
+      var filteredData = dt.rows().indexes().filter( function ( value, index ) {
+        return (filters.indexOf(dt.row(value).data()[2]) > -1) ||   // token
+               (filters.indexOf(dt.row(value).data()[1]) > -1)      // energy_device_id
+      })
+      dt.rows( filteredData )
+        .remove()
+        .draw()
+      // Enable tooltip
+      $('[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+    }
+
+    function getOptionList( heading_text, heading_value, data ) {
+      let uniqueList = []
+      $.each(data, function( index, value ) {
+        uniqueList[value.energy_device_id] = '<option value="' + value.energy_device_id + '" style="font-style: italic;"><span class="filterText">' + value.energy_device_id + '</span></option>'
+        uniqueList[value.rfid] = '<option value="' + value.rfid + '" style="font-style: italic;">' + 
+                                 (value.rfid in rfidTokens && isData(rfidTokens[value.rfid].name) ? 
+                                  '<span class="filterText d-none">' + value.rfid + '</span><span>' + rfidTokens[value.rfid].name + '</span>' :
+                                  '<span class="filterText">' + value.rfid + '</span>'
+                                 ) +
+                                 '</option>'
+      })
+      return '<option value="' + heading_value + '" style="font-style: italic;">' + heading_text + '</option>' +
+             Object.values(uniqueList).join('')
+    }
+
+    let cargerData = {}
+    function getChargerConfig() {
+      console.log(timestamp() + ' getChargerConfig()')
+            
+      $.ajax({
+        type		    : 'GET',
+        url			    : '/charger_config/',
+        contentType : "application/json",
+        dataType	  : 'json',
+        headers     : { 'ignore-login-next': 'true' },
+        encode		  : true,
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log(data)
+        $.each(data, function(i,val) {
+          cargerData[val.charger_id] = val
+        })
+        // Force redraw
+        if (dt != undefined) {
+          dt.rows().invalidate().draw()
+        }
+        $('[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+        // Redraw filter select
+        console.log("select#filterReport > option ", $("select#filterReport > option"))
+        $("select#filterReport > option").each(function() {
+          if (this.value in cargerData && isData(cargerData[this.value].charger_name)) {
+            this.text = cargerData[this.value].charger_name
+          }
+        })
+      })
+      .fail(function() {
+        autoHideNotify('error','top-left', 'Probleem fout', 'Charger data niet beschikbaar.')
+      })
+      .always(function() {
+      })
+    }
+
+    // month is 1-based
+    function getChargeReport( year, month ) {
+      console.log(timestamp() + ' getChargeReport( '+year+', '+month+')')
+      /*
+        from and to are date string ('%d/%m/%Y, %H:%M:%S')
+        Date values as zero-padded decimal number (01, 02, ...) and month 1-based (Jan = 1)
+      */
+      $.ajax({
+        type		    : 'GET',
+        url			    : '/charge_sessions/',
+        contentType : "application/json",
+        dataType	  : 'json',
+        headers     : { 'ignore-login-next': 'true' },
+        encode		  : true,
+        data        : {
+          // format %d/%m/%Y, %H:%M:%S
+          from: '01/'+(month<10?'0':'')+month+'/'+year+', 00:00:00',                                // month 1-based (1-12)
+          to  : '01/'+(((month %12) +1)<10?'0':'')+((month %12) +1)+'/'+(month==12?year+1:year)+', 00:00:00'   // month 1-based, month+1 2-13)
+        },
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log(data)
+        dt = $('table#charge_sessions').DataTable( {
+          paging: false,
+          "order": [[ 0, "desc" ]], // id
+          dom: 'Blfrtip',
+          buttons: [{
+            extend: 'excelHtml5',
+            text: "<i class='far fa-file-excel'></i> Excel",
+            className: 'btn btn-low-key btn-sm',
+            title: 'Oppleo laadsessierapport',
+            messageTop: ( ({{ year }} == new Date().getFullYear() && {{ month }} == (new Date().getMonth() +1)) ?    // month 1-based, getMonth 0-based
+                          ('Lopende maand ' + months[{{ month }} -1] + ' {{ year }} t/m de ' + new Date().getDate() + 'e')
+                          :
+                          (months[{{ month }} -1] + ' {{ year }}')
+                        ),
+            messageBottom: 'Oppleo laadpunt (c) {{ now.year }} oppleo.nl',
+            filename: ( ({{ year }} == new Date().getFullYear() && {{ month }} == (new Date().getMonth() +1)) ? 
+                        ('Oppleo laadsessierapport - ' + months[{{ month }} -1] + ' {{ year }} - lopende maand')
+                        :
+                        ('Oppleo laadsessierapport - ' + months[{{ month }} -1] + ' {{ year }}')
+                      ),
+            footer: true,
+            exportOptions: {
+              orthogonal: {
+                display: 'Plain'
+              },
+              columns: ':visible',
+              format: {
+                body: function(data, row, column, node) {
+                  data = $('<p>' + data + '</p>').text();
+                  return $.isNumeric(data.replace(',', '.')) ? data.replace(',', '.') : data;
+                }
+              }
+            }
+          }, {
+            extend: 'pdfHtml5',
+            text: "<i class='far fa-file-pdf'></i> PDF",
+            className: 'btn btn-low-key btn-sm',
+            orientation: 'landscape',
+            pageSize: 'A4',
+            title: 'Oppleo laadsessierapport',
+            messageTop: ( ({{ year }} == new Date().getFullYear() && {{ month }} == (new Date().getMonth() +1)) ?    // month 1-based, getMonth 0-based
+                          ('Lopende maand ' + months[{{ month }} -1] + ' {{ year }} t/m de ' + new Date().getDate() + 'e')
+                          :
+                          (months[{{ month }} -1] + ' {{ year }}')
+                        ),
+            messageBottom: 'Oppleo laadpunt (c) {{ now.year }} oppleo.nl',
+            filename: ( ({{ year }} == new Date().getFullYear() && {{ month }} == (new Date().getMonth() +1)) ? 
+                        ('Oppleo laadsessierapport - ' + months[{{ month }} -1] + ' {{ year }} - lopende maand')
+                        :
+                        ('Oppleo laadsessierapport - ' + months[{{ month }} -1] + ' {{ year }}')
+                      ),
+            footer: true,
+            customize: function(doc) {
+              doc.styles['tableBodyOddRight'] = doc.styles.tableBodyOdd
+              doc.styles.tableBodyOddRight['alignment'] = 'right'
+              doc.styles['tableBodyOddCenter'] = doc.styles.tableBodyOdd
+              doc.styles.tableBodyOddCenter['alignment'] = 'center'
+              doc.styles['tableBodyEvenRight'] = doc.styles.tableBodyEven
+              doc.styles.tableBodyEvenRight['alignment'] = 'right'
+              doc.styles['tableBodyEvenCenter'] = doc.styles.tableBodyEven
+              doc.styles.tableBodyEvenCenter['alignment'] = 'center'
+              doc.styles['tableFooterRight'] = doc.styles.tableFooter
+              doc.styles.tableFooterRight['alignment'] = 'right'
+              doc.styles['tableFooterCenter'] = doc.styles.tableFooter
+              doc.content[2].table.body.forEach((row, index) => {
+                if (index < doc.content[2].table.headerRows) return
+                row[0].style += 'Center'
+                row[9].style += 'Right'
+                row[10].style += 'Right'
+              })
+
+              doc.content[0] = {
+                margin: [0, 0, 0, 12],
+                layout: 'noBorders',
+                table: {
+                  headerRows: 0,
+                  body: [
+                    [{
+                      style: {
+                        textAlign: 'center'
+                      },
+                      image: 'data:image/png;base64,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'
+                    },{
+                      style: {
+                        textAlign: 'center',
+                        fontSize: 15,
+                        bold: true,
+                      },
+                      text: doc.content[0].text
+                    }]
+                  ]
+                } 
+              }
+              doc.content[1] = {
+                margin: [0, 0, 0, 12],
+                layout: 'noBorders',
+                table: {
+                  headerRows: 0,
+                  body: [
+                    [{
+                      style: {
+                        alignment: 'left',
+                        bold: true
+                      },
+                      text: 'Bonnummer: {{ oppleoconfig.receiptPrefix}}{{ year }}' + (month < 10 ? '0' + month : month)
+                    }],[{
+                      style: {
+                        alignment: 'left',
+                        bold: true
+                      },
+                      text: doc.content[1].text
+                    }],[{
+                      style: {
+                        alignment: 'left',
+                        fontSize: 8,
+                      },
+                      text: 'EASTRON SMD630 3-fase 100A MID-keur Modbus kWh meter (serial ' + kWhMeterSerial + ')'
+                    }]
+                  ]
+                } 
+              }
+            },
+            exportOptions: {
+              orthogonal: {
+                display: 'Print'
+              },
+              columns: ':visible'
+            }
+          }, {
+            extend: 'print',
+            text: "<i class='fas fa-print'></i> Print",
+            className: 'btn btn-low-key btn-sm',
+            orientation: 'landscape',
+            pageSize: 'A4',
+            title: 'Oppleo laadsessierapport',
+            messageTop: ( ({{ year }} == new Date().getFullYear() && {{ month }} == (new Date().getMonth() +1)) ?    // month 1-based, getMonth 0-based
+                          ('Lopende maand ' + months[{{ month }} -1] + ' {{ year }} t/m de ' + new Date().getDate() + 'e')
+                          :
+                          (months[{{ month }} -1] + ' {{ year }}')
+                        ),
+            messageBottom: 'Oppleo laadpunt (c) {{ now.year }} oppleo.nl',
+            filename: ( ({{ year }} == new Date().getFullYear() && {{ month }} == (new Date().getMonth() +1)) ? 
+                        ('Oppleo laadsessierapport - ' + months[{{ month }} -1] + ' {{ year }} - lopende maand')
+                        :
+                        ('Oppleo laadsessierapport - ' + months[{{ month }} -1] + ' {{ year }}')
+                      ),
+            footer: true,
+            exportOptions: {
+              orthogonal: {
+                display: 'Print'
+              },
+              columns: ':visible'
+            },
+            customize: function ( win ) {
+              $(win.document.body)
+                .css( 'font-size', '10pt' ) 
+              $(win.document.body).find( 'table' )
+                .addClass( 'compact' )
+                .css( 'font-size', 'inherit' )
+            }
+          },{
+            text: '<select class="form-control form-control-sm" id="filterReport" name="filterReport">' + getOptionList('Uitsluiten:', '-', data) + '</select>',
+            className: 'mt-0 mb-0 ml-3 pt-0 pb-0 pl-0 pr-0 btn btn-secondary-outline'
+          }],
+          "footerCallback": function ( row, data, start, end, display ) {
+            var api = this.api(), data;
+
+            // Remove the formatting to get integer data for summation
+            var intVal = function ( i ) {
+                return typeof i === 'string' ?
+                    i.replace(/[\$,]/g, '')*1 :
+                    typeof i === 'number' ?
+                        i : 0
+            }
+            // Total over all pages
+            totalEnergy = api
+                .column( 9 )
+                .data()
+                .reduce( function (a, b) {
+                    return intVal(a) + intVal(b)
+                }, 0 )
+ 
+            // Total over all pages
+            totalPrice = api
+                .column( 10 )
+                .data()
+                .reduce( function (a, b) {
+                    return intVal(a) + intVal(b)
+                }, 0 )
+            // Update footer
+            $( api.column( 1 ).footer() ).html( '' ) // Make sure default text is empty
+            $( api.column( 8 ).footer() ).html( '<h5 class="text-right font-weight-bold">Totaal:</h5>' )
+            $( api.column( 9 ).footer() ).html(
+              '<nobr><h5 class="d-flex justify-content-center font-weight-bold">' + (Math.round(totalEnergy * 10) /10) + 'kWh</h5></nobr>'
+            )
+            $( api.column( 10 ).footer() ).html(
+              '<nobr><h5 class="d-flex justify-content-center font-weight-bold">&euro;&nbsp;' + (Math.round(totalPrice * 100) /100).toFixed(2) + '</h5></nobr>'
+            )
+          },
+          "createdRow": function(row, data, dataIndex) {
+            $(row).toggleClass("text-info").fadeOut(800, function() {              
+              $(this).toggleClass("text-info").fadeIn(50)
+            })
+          },
+          "columnDefs": [{
+            "targets": [1],
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain' || type.display == 'Print')) {
+                // Excel export, skip the markup
+                return ( data == undefined || data === "None" ? "" : 
+                        (data in cargerData && isData(cargerData[data].charger_name) ? cargerData[data].charger_name : data)  
+                        )
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                tooltipText = "Laadpunt ref: <i><b>" + data + "</i></b>" // The charger ID
+                returnStr = (data in cargerData && isData(cargerData[data].charger_name) ? 
+                              '<span data-toggle="tooltip" \
+                                     data-placement="bottom" \
+                                     data-html="true" \
+                                     stype="cursor: default;" \
+                                     title="<em>' +  tooltipText + '</em>" \
+                                     >' : 
+                              '<span>'
+                    )
+                return (data == undefined || data === "None" ? 
+                        returnStr + '<i class="fas fa-ban"></i>' + 
+                                  '</span>' 
+                        : 
+                        returnStr + (data in cargerData && isData(cargerData[data].charger_name) ? cargerData[data].charger_name : data) + 
+                                  '</span>'
+                       )
+              }
+            }
+          }, {
+            // RFID tag [3]
+            "targets": 2,
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain')) {
+                // Excel export
+                return (data in rfidTokens && isData(rfidTokens[data].name) ?
+                    rfidTokens[data].name :
+                    data
+                  )
+              } else if (type.hasOwnProperty('display') && (type.display == 'Print')) {
+                // PDF export
+                return (data in rfidTokens && isData(rfidTokens[data].name) ?
+                    rfidTokens[data].name :
+                    data
+                  )
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                return (data in rfidTokens && isData(rfidTokens[data].name) ? 
+                    `<span data-toggle='tooltip'
+                            data-placement='bottom'
+                            data-html='true'
+                            style='cursor: pointer;'
+                            title='<em>` + data + `</em>'
+                            >
+                            <a href="/rfid_tokens/` + data + `" target="_self">
+                              ` + rfidTokens[data].name + `
+                            </a>
+                    <span>` :
+                    data
+                  )
+              }
+            }
+          }, {
+            // Vehicle brand [4]
+            "targets": 3,
+            "render": function (data, type, row) {
+              // Excel export, return number, or if know the RFID tag name
+              return (data in rfidTokens && isData(rfidTokens[data].vehicle_make) ? 
+                        rfidTokens[data].vehicle_make :
+                        '-'
+                    )
+            }
+          }, {
+            // Vehicle model [5]
+            "targets": 4,
+            "render": function (data, type, row) {
+              // Excel export, return number, or if know the RFID tag name
+              return (data in rfidTokens && isData(rfidTokens[data].vehicle_model) ? 
+                        rfidTokens[data].vehicle_model :
+                        '-'
+                    )
+            }
+          }, {
+            // Vehicle license [6]
+            "targets": 5,
+            "render": function (data, type, row) {
+              // Excel export, return number, or if know the RFID tag name
+              return (data in rfidTokens && isData(rfidTokens[data].license_plate) ? 
+                        rfidTokens[data].license_plate :
+                        '-'
+                    )
+            }
+          }, {
+            // Time and date (end time) [7]
+            "targets": 6,
+            "sorting": true,
+            "orderable": true,
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain')) {
+                // Excel export, only date
+                if (data == undefined || data === "None" || typeof data != "string" || (data.trim()).length != 20) {
+                  return ""
+                }
+                d = parseDate(data)
+                // 19-02-2020
+                return (d.getDate() < 10 ? '0' : '') + d.getDate() + '-' +
+                       ((d.getMonth() +1) < 10 ? '0' : '') + (d.getMonth() +1) + '-' +    // convert 0-based month to 1-based month
+                        d.getFullYear()
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                if (data == undefined || data === "None") {
+                  return ""
+                }
+                if (typeof data != "string" || (data.trim()).length != 20) {
+                  return data
+                }
+                d = parseDate(data)
+                // Vr 28 Feb 2020 
+                // Using 0-based js month for lookup in 0-based months array
+                return (weekday[d.getDay() %7]).substring(0, 2) + ' ' + 
+                        d.getDate() + ' ' + (months[d.getMonth() %12]).substring(0, 3) + ' ' + d.getFullYear()
+              }
+            }
+          }, {
+            // odometer [8]
+            "targets": 7,
+            "sorting": false,
+            "orderable": false,
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain')) {
+                // Excel export, skip the 'km'
+                return data == undefined || data === "None" ? "" : data
+              } else if (type.hasOwnProperty('display') && (type.display == 'Print')) {
+                // PDF export, add the 'km'
+                return data == undefined || data === "None" ? "" : data + 'km'
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                return data == undefined || data === "None" ? 
+                        "-" : 
+                        '<span style="text-align: right;">' + data + 'km</span>'
+              }
+            }
+          }, {
+            // Total energy [10]
+            "targets": 9,
+            "sorting": false,
+            "orderable": false,
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain')) {
+                // Excel export, skip the 'kWh' and change . with ,
+                if (data == undefined || data === "None") {
+                  return ""
+                }
+                return (Math.round(data * 10) /10)
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                return data == undefined || data === "None" ? 
+                        "-" : 
+                        '<span style="text-align: right;">' + (Math.round(data * 10) /10) + 'kWh</span>'
+              }
+            }
+          }, {
+            // Tariff [9], and Price [11]
+            "targets": [8, 10],
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain')) {
+                // Excel export, change . with ,
+                if (data == undefined || data === "None") {
+                  return ""
+                }
+                return '&euro; ' + (Math.round(data * 100) /100).toString().replace('.', ',')
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                return data == undefined || data === "None" ? 
+                        "-" : 
+                        '<span style="text-align: right;">&euro; ' + (Math.round(data * 100) /100).toFixed(2) + '</span>'
+              }
+            }
+          }],
+          "searching": false
+        })
+
+        // Filter table when filter selected
+        $('select[id="filterReport"]').on('change', function() {
+          if (this.value != "-") {
+            // RFID?
+            rfid = null
+            tokenRfid = this.value
+            tokenName = (tokenRfid in rfidTokens && isData(rfidTokens[tokenRfid].name) ? rfidTokens[tokenRfid].name : null)
+            // Button
+            dt.button().add( 4, {
+              text: (tokenName != null ? "<span data-toggle='tooltip' data-placement='bottom' data-html='true' style='cursor: pointer;' title='<em>" + tokenRfid + "</em>'><span class='filterText d-none'>" + tokenRfid + "</span>" : '') +
+                    '<span' + (tokenName == null ? ' class="filterText"' : '') + '>' + (tokenName != null ? tokenName : tokenRfid) + '</span> <i class="fas fa-times"></i>' +
+                    (tokenName != null ? '</span>' : ''),
+              className: 'ml-3 pl-3 pr-3 btn btn-low-key-warning btn-sm',
+              action: function ( e, dt, node, config ) {
+                  // Filter
+                  tokenRfid = node.find('.filterText').text()
+                  // Remove filter from list
+                  filters = filters.filter(function(value, index, arr) { 
+                    return value !== tokenRfid 
+                  })
+                  // Filter table
+                  filterTable()
+                  // Add option back to filter
+                  $('select[id="filterReport"]').append('<option value="' + tokenRfid + '" style="font-style: italic;">' + 
+                                                        (tokenRfid in rfidTokens && isData(rfidTokens[tokenRfid].name) ? rfidTokens[tokenRfid].name : tokenRfid) + 
+                                                        '</option>')
+                  // Remove button
+                  this.remove()
+                  // Remove tooltips
+                  $(".tooltip").tooltip("hide")
+              }
+            })
+            // Remove option from selectbox
+            $(this).find("option[value='" + this.value + "']").remove()
+            // Reset selectbox to first
+            $(this).find("option[value='-']").attr('selected','selected')
+
+            // Filter list
+            filters.push(tokenRfid)
+            // Filter table
+            filterTable()
+          }
+        })
+
+        dt.draw('full-reset')
+        data.forEach(element => {
+
+          dt.row.add([
+            element.id,
+            element.energy_device_id,
+            element.rfid,
+            element.rfid,
+            element.rfid,
+            element.rfid,
+            ( (typeof element.end_time === 'string' || element.end_time instanceof String) ?
+              element.end_time :
+              '-'
+            ),
+            ( (typeof element.km === 'string' || element.km instanceof String) ?
+              element.km :
+              '-'
+            ),
+            ( (typeof element.tariff === 'string' || element.tariff instanceof String) ?
+              element.tariff :
+              '-'
+            ),
+            ( (typeof element.total_energy === 'string' || element.total_energy instanceof String) ?
+              element.total_energy :
+              '-'
+            ),
+            ( (typeof element.total_price === 'string' || element.total_price instanceof String) ?
+              element.total_price :
+              '-'
+            )
+            ,""
+          ]).draw( false )
+          $('button#edit_' + element.rfid).click(function() {
+            //Do stuff when clicked
+            window.location = location + $(this).attr('id').split("_").pop()
+          })
+        })
+
+        unfilteredData = dt.rows().data()
+
+        $('[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+      })
+      .fail(function() {
+        autoHideNotify('error', 'top-left', 'Probleem', 'Laadsessiedata niet beschikbaar.')
+      })
+      .always(function() {
+        // Remove spinner
+        $('.spinner').hide()
+      })
+    }
+
+    jQuery(document).ready(function () {
+      console.log(timestamp() + " file load completed!")
+      getChargeReport( {{ year }}, {{ month }} )
+      getChargerConfig()
+      let now = new Date()
+      if ({{ year }} == now.getFullYear() && {{ month }} == (now.getMonth() +1)) {   // month 1-based, getMonth 0-based
+        // Month not closed yet
+        $('h4#page_title').html('Laadrapport lopende maand (' + months[{{ month }} -1] + ' {{ year }} t/m de ' + now.getDate() + 'e)')
+      } else {
+        $('h4#page_title').html('Laadrapport ' + months[{{ month }} -1] + ' {{ year }}')
+      }
+      getRfidTokens()
+    })
+
+    </script>
+
+{% endblock %}
+{% block content %}
+
+<div class="wrapper" id="{{ var1 }}">
+  <div class="container-fluid">
+
+    <!-- Page-Title -->
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="page-title-box">
+                <h4 id="page_title" class="page-title">Laadrapport</h4>
+            </div>
+        </div>
+    </div>
+    <!-- end page title end breadcrumb -->
+
+
+    <div class="row">
+      <div class="col-12">
+
+        <div class="card-box table-responsive">
+
+          <table id="charge_sessions" class="table table-bordered" cellpadding="0" cellspacing="0" style="font-size: 10px;">
+            <thead style="background-color: #3bafda; color: white; border-color: #3bafda;">
+              <tr>
+                <th class="pl-0 pr-0 text-center">Transactie</th>
+                <th class="pl-0 pr-0 text-center">Laadpunt</th>
+                <th class="text-center">Laadpas</th> <!-- naam -->
+                <th class="pl-0 pr-0 text-center">Merk</th>
+                <th class="pl-0 pr-0 text-center">Model</th>
+                <th class="pl-0 pr-0 text-center">Kenteken</th>
+                <th class="pl-0 pr-0 text-center">Datum</th>  <!-- eindtijd -->
+                <th class="pl-0 pr-0 text-center">km stand</th>
+                <th class="pl-0 pr-0 text-center">Tarief</th>
+                <th class="pl-0 pr-0 text-center">Verbruik</th>
+                <th class="pl-0 pr-0 text-center">Prijs</th>
+              </tr>
+            </thead style="background-color: #3bafda; color: white; font-size: 14pt; font-weight: bold; border-color: #3bafda;">
+            <tbody>
+            </tbody>
+
+            <tfoot>
+              <tr>
+                <td colspan="8"></td>
+                <td class="text-right">Totaal:</td>
+                <td class="pl-0 pr-0 ml-0 mr-0"></td>
+                <td class="pl-0 pr-0 ml-0 mr-0"></td>
+              </tr>
+            </tfoot>
+
+          </table>
+        </div>
+      </div>
+    </div> <!-- end row -->
+
+  </div>
+</div>
+{% endblock %}

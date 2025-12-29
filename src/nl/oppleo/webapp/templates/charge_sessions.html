@@ -1,0 +1,2454 @@
+{% extends "template.html" %}
+{% block title %}Laadsessies{% endblock %}
+{% block jquery %} 
+  {% include 'includes/include.jquery-3.3.1.html' %}
+{% endblock %} 
+{% block head %}
+  {{ super() }}
+
+  <!-- DataTables CSS -->
+  <link href="{{ url_for('static', filename='plugins/datatables/1.10.20/jquery.dataTables.min.css') }}" rel="stylesheet" type="text/css" />
+  <link href="{{ url_for('static', filename='plugins/datatables/buttons.bootstrap4.min.css') }}" rel="stylesheet" type="text/css" />
+  <link href="{{ url_for('static', filename='plugins/buttons/1.6.1/buttons.dataTables.min.css') }}" rel="stylesheet" type="text/css" />
+
+  <!-- Responsive datatable examples -->
+  <link href="{{ url_for('static', filename='plugins/datatables/responsive.bootstrap4.min.css') }}" rel="stylesheet" type="text/css" />
+   
+  <!-- Required datatable js -->
+  <script src="{{ url_for('static', filename='plugins/datatables/1.10.20/jquery.dataTables.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/datatables/dataTables.bootstrap4.min.js') }}"></script>
+  <!-- Buttons -->
+  <script src="{{ url_for('static', filename='plugins/buttons/1.6.1/dataTables.buttons.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/datatables/buttons.bootstrap4.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/buttons/1.6.1/buttons.flash.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/jszip/3.1.3/jszip.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/pdfmake/0.1.53/pdfmake.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/pdfmake/0.1.53/vfs_fonts.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/buttons/1.6.1/buttons.html5.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/buttons/1.6.1/buttons.print.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/datatables/buttons.colVis.min.js') }}"></script>
+
+  <!-- Responsive -->
+  <script src="{{ url_for('static', filename='plugins/datatables/dataTables.responsive.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/datatables/responsive.bootstrap4.min.js') }}"></script>
+
+  <!-- Datepicker, Date range picker -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='plugins/bootstrap-daterangepicker/daterangepicker.css') }}">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/oppleo.css') }}">
+
+  <!-- Moment, required for date range picker -->
+  <script src="{{ url_for('static', filename='plugins/moment/moment.js') }}"></script>
+
+  <!-- Datepicker, Date range picker -->
+  <script src="{{ url_for('static', filename='plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/bootstrap-datepicker/datepicker-nl.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/bootstrap-daterangepicker/daterangepicker.js') }}"></script>
+
+  <!-- https://timepicker.co/ -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='plugins/timepicker/1.3.5/jquery.timepicker.min.css') }}">
+  <script src="{{ url_for('static', filename='plugins/timepicker/1.3.5/jquery.timepicker.min.js') }}"></script>
+
+  <!-- https://select2.org/ -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='plugins/select2/4.0.7/select2.min.css') }}">
+  <script src="{{ url_for('static', filename='plugins/select2/4.0.7/select2.min.js') }}"></script>
+
+  <!-- Oppleo edit web components -->
+  <script src="{{ url_for('static', filename='js/oppleo-edit-str.js') }}" shadydom></script>
+  <script src="{{ url_for('static', filename='js/oppleo-edit-select.js') }}" shadydom></script>
+  <script src="{{ url_for('static', filename='js/oppleo-edit-time.js') }}" shadydom></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/oppleo-edit-select.css') }}">
+
+  <!-- Required Flot prereq -->
+  <script src="{{ url_for('static', filename='js/jquery.event.drag-1.6.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/jquery.mousewheel-3.0.6.js') }}"></script>
+
+  <!-- Required Flot -->
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.canvaswrapper.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.colorhelpers.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.saturated.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.browser.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.drawSeries.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.uiConstants.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.axislabels.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.time.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.resize.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.selection.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.stack.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.crosshair.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.navigate.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.touchNavigate.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.hover.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/flot-charts/jquery.flot.legend.js') }}"></script>
+
+  <!-- Socket IO -->
+  <script src="{{ url_for('static', filename='plugins/socket.io/4.7.2/socket.io.min.js') }}"></script>
+
+  <!-- Oppleo webauthn functions -->
+  <script src="{{ url_for('static', filename='js/oppleo-webauthn.js') }}"></script>
+
+  <style>
+    .paginate_button {
+        padding: 0px !important;
+    }
+/*
+    tbody td {
+      padding: 2px 2px !important;
+      text-align: center;
+      background-color: #36404a;
+    }
+*/    
+    div .dataTables_info {
+      color: #98a6ad !important;
+      margin-left: 5px;
+    }
+    div .dt-buttons {
+      margin-bottom: 10px;
+      margin-left: 3px;
+    }
+    div .dataTables_length {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+    }
+    div .dataTables_length label {
+      font-size: smaller;
+      margin-left: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+      color: #98a6ad !important;
+    }
+    div .dataTables_length label select {
+      width: 80px;
+      margin-left: 10px;
+      margin-right: 10px;
+    }
+    .table-hover-warning tbody tr:hover td, .table-hover-warning tbody tr:hover th {
+      background-color: #ffaa00 !important;
+      color: white;
+    }
+    .table-hover-success tbody tr:hover td,
+    .table-hover-success tbody tr:hover th {
+      background-color: #00b19d !important;
+      color: white;
+    }
+    .table-hover-success tbody tr:hover td a, .table-hover-success tbody tr:hover td button svg,
+    .table-hover-success tbody tr:hover th a {
+      color: white;
+    }
+    .table-hover-success tbody tr:hover td button,
+    .table-hover-success tbody tr:hover th button {
+      border-color: white;
+    }
+    .highlight-changes, .highlight-changes span, .highlight-changes span a {
+      background-color: #ffaa00 !important;
+      color: white !important;
+    }
+    /* No padding in the button column */
+    table tbody tr td:nth-child(13) {
+      padding-top: 0px !important;
+      padding-bottom: 0px !important;
+    }
+    /* Move the icon up in to small buttons in the button column */
+    table tbody tr td button.btn-table-row .svg-inline--fa {
+      vertical-align: .2em !important;
+    }
+    #graph_tooltip {
+      position: absolute;
+      display: none;
+      border: 1px solid rgb(148, 148, 148);
+      padding: 2px;
+      background-color: rgb(73, 73, 73);
+      opacity: 0.80;
+      z-index: 10000;
+    }
+    g.flot-x1-axis text {
+      fill: #98a6ad;  /* text color */
+    }
+    g.flot-y1-axis text, .y1LabelLayer text {
+      fill: #00b19d;  /* text color */
+    }
+    g.flot-y2-axis text, .y2LabelLayer text {
+      fill: #ffaa00;  /* text color */
+    }
+    div.legend svg.legendLayer {
+      fill: rgba(76, 83, 87, 0.4);/*
+      fill-opacity: '0.4';*/
+      border: 1px solid #98a6ad;
+      background: rgba(76, 83, 87, 0.6);
+    }
+    div.legend svg.legendLayer g:nth-of-type(1) text tspan {
+      fill: #00b19d;
+      font-size: smaller;
+    }
+    div.legend svg.legendLayer g:nth-of-type(2) text tspan {
+      fill: #ffaa00;
+      font-size: smaller;
+    }
+
+    .charge-session-summary {
+      font-size: smaller; 
+      width: calc(100% - 134px);
+    }
+    .charge-session-summary span {
+      padding-right: 5px;
+    }
+    .charge-session-summary span:nth-child(18) {
+      padding-right: 0px;
+    }
+    .charge-session-summary span:nth-child(even) {
+      color: #3bafda;
+    }
+
+  </style>
+
+  <script>
+    let dt = undefined
+
+    function timestamp() {
+      d = new Date();
+      return (d.getFullYear() + "-" + 
+             (d.getMonth()<10?'0':'') + (d.getMonth()+1) + "-" + 
+             (d.getDate()<10?'0':'') + d.getDate() + '.' + 
+             (d.getHours()<10?'0':'') + d.getHours() + ":" + 
+             (d.getMinutes()<10?'0':'') + d.getMinutes() + "." + 
+             (d.getSeconds()<10?'0':'') + d.getSeconds() + '.' + 
+             (d.getMilliseconds()<100?'0':'') + (d.getMilliseconds()<10?'0':'') + d.getMilliseconds()
+      )
+    }
+
+    var chargeSessionSocket = undefined
+    function startWebSocket() {
+      console.log(timestamp() + ' startWebSocket()')
+      // start up the SocketIO connection to the server on namespace /usage
+      chargeSessionSocket = io.connect(window.location.protocol+'//'+window.location.hostname+':'+window.location.port+'/charge_session')
+      // this is a callback that triggers when the "my response" event is emitted by the server.
+      chargeSessionSocket.on('charge_session_deleted', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        // The charge session is effectively removed, delete from datatables
+        let row = dt
+                    .rows( function ( idx, data, node ) {
+                      return parseInt(data[0]) == msg.data.deleteId
+                    })
+        autoHideNotify('warning','top-left', 'Laadsessie verwijderd', 'Laadsessie '+msg.data.deleteId+' is verwijderd.')
+        highlightRowDanger( row, function() {
+          row.remove()
+          dt.draw()
+        })                      
+
+      })
+      chargeSessionSocket.on('charge_session_condensed', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        // The charge session is effectively removed, delete from datatables
+        let row = dt
+                    .rows( function ( idx, data, node ) {
+                      return parseInt(data[0]) == msg.data.deleteId
+                    })
+        autoHideNotify('warning','top-left', 'Condense', 'Laadsessie '+msg.data.deleteId+' wordt samengevoegd met automatisch aangemaakte laadsessie '+msg.data.surviveId+'.')
+        highlightRowDanger( row, function() {
+          row.remove()
+          dt.draw()
+        })                      
+      })
+      chargeSessionSocket.on('charge_session_data_update', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        // The values of the charge session are updated, change in datatables
+
+        // Update km in datatable
+        if (dt != undefined) {
+          // Update a row
+          var rowIndex = -1
+          let rowData = undefined
+          // Find the row
+          dt.rows( function ( idx, data, node ) {             
+              if (data[0] == msg.data.id) {
+                  rowIndex = idx
+                  rowData = data
+              }
+              return false
+            })
+            .draw()
+          if (rowIndex != -1) {
+            // Row:
+            // session id stays id
+            // token is rfid
+            rowData[1] = msg.data.rfid
+            // start time
+            rowData[2] = ( (typeof msg.data.start_time === 'string' || msg.data.start_time instanceof String) ?
+                            addNobr( msg.data.start_time ) :
+                            '-'
+                          )
+            // trigger
+            rowData[3] = ( ((typeof msg.data.trigger === 'string' || msg.data.trigger instanceof String) && msg.data.trigger != "None") ?
+                          msg.data.trigger :
+                          '-'
+                        )
+            // Start value
+            rowData[4] = ( (typeof msg.data.start_value === 'string' || msg.data.start_value instanceof String) ?
+                          msg.data.start_value :
+                          '-'
+                        )
+            // km
+            rowData[5] = ( (typeof msg.data.km === 'string' || msg.data.km instanceof String) ?
+                          msg.data.km :
+                          '-'
+                        )
+            // End time
+            rowData[6] = ( (typeof msg.data.end_time === 'string' || msg.data.end_time instanceof String) ?
+                          addNobr( msg.data.end_time ) :
+                          '-'
+                        )
+            // End value
+            rowData[7] = ( (typeof msg.data.end_value === 'string' || msg.data.end_value instanceof String) ?
+                          msg.data.end_value :
+                          '-'
+                        )
+            // Charger
+            rowData[8] = msg.data.energy_device_id
+            // Tariff
+            rowData[9] =  ( (typeof msg.data.tariff === 'string' || msg.data.tariff instanceof String) ?
+                          msg.data.tariff :
+                          '-'
+                        )
+            // Usage
+            rowData[10] = ( (typeof msg.data.total_energy === 'string' || msg.data.total_energy instanceof String) ?
+                            msg.data.total_energy :
+                            '-'
+                          )
+            // Total
+            rowData[11] = ( (typeof msg.data.total_price === 'string' || msg.data.total_price instanceof String) ?
+                            msg.data.total_price :
+                            '-'
+                          )
+            // Buttons
+            rowData[12] = ""
+            dt.row(rowIndex).data(rowData).draw()
+            $('button#edit_' + msg.data.rfid).click(function() {
+              //Do stuff when clicked
+              window.location = location + $(this).attr('id').split("_").pop();
+            })
+
+            autoHideNotify('success','top-left', 'Laadsessie update', 'De details van laadsessie '+msg.data.id+' zijn gewijzigd.')
+            // Change animation
+            highlightRowSuccess( dt.row(rowIndex) )                      
+/*
+            dt.rows(rowIndex).nodes().to$().toggleClass("text-info").fadeOut(800, function() {              
+              $(this).toggleClass("text-info").fadeIn(50)
+            })
+*/
+          }
+        }
+
+      })
+
+      
+      chargeSessionSocket.on('odomoter_update_started', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        if (dt != undefined && typeof msg.data.chargeSessionId == "number") {
+          captureOdometerButton(BUTTONSTATE_REQUESTING)
+        }
+      })
+      chargeSessionSocket.on('odomoter_update_ended', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+
+        if (!msg.data.status) {
+          captureOdometerButton(BUTTONSTATE_FAILED)
+          autoHideNotify('warning','top-left', 'Ophalen mislukt', 'Ophalen kilometerstand voor sessie ' + 
+                              msg.data.chargeSessionId +' mislukt (code ' + msg.data.code + 
+                              ': ' + msg.data.reason + ').')
+          return
+        }
+        // Hide button for now
+        captureOdometerButton(BUTTONSTATE_HIDE)
+
+      })
+    }
+   
+    function updateCaptureOdometerButton(icon, text, clickEnabled, hide=false) {
+      $('button#captureOdometer').html(icon)
+      $('button#captureOdometer').attr('data-original-title','<em>'+text+'</em>')
+      $('button#captureOdometer').tooltip('hide')
+      $('button#captureOdometer').off('click', captureOdometer)
+      if (clickEnabled) {
+        $('button#captureOdometer').on('click', captureOdometer)
+        $('button#captureOdometer').css({'cursor': 'pointer'})
+      } else {
+        $('button#captureOdometer').css({'cursor': 'wait'})
+      }
+      $('button#captureOdometer').toggleClass('d-none', hide)
+    }
+
+    function captureOdometerButton(buttonState) {
+      let iconInitial = '<i class="fas fa-redo-alt" style="font-size: 12px;"></i>'
+      let iconSpinner = '<i class="fas fa-spinner fa-spin" style="font-size: 12px;"></i>'
+      let textInitial = 'Km stand ophalen mislukt. Km stand nogmaals ophalen.'
+      let txtRequesting = 'Kilometerstand ophalen aanvragen...'
+      let txtRequested = 'Kilometerstand ophalen aangevraagd.'
+      switch (buttonState) {
+        case BUTTONSTATE_REQUESTING:
+          updateCaptureOdometerButton(iconSpinner, txtRequesting, false)
+          break
+        case BUTTONSTATE_REQUESTED:
+          updateCaptureOdometerButton(iconSpinner, txtRequested, false)
+          break
+        case BUTTONSTATE_DONE:
+        case BUTTONSTATE_HIDE:
+          updateCaptureOdometerButton(iconInitial, textInitial, false, true)
+          break
+        case BUTTONSTATE_FAILED:
+        case BUTTONSTATE_INITIAL:
+        default:
+          updateCaptureOdometerButton(iconInitial, textInitial, true)
+          break
+      }
+    }
+    function captureOdometer() {
+      console.log(timestamp() + ' captureOdometer()')            
+      $('.spinner').show()
+      captureOdometerButton(BUTTONSTATE_REQUESTING)
+      $.ajax({
+        type		    : 'GET',
+        url			    : '/request_odometer_update/',
+        contentType : "application/json",
+        dataType	  : 'json',
+        headers     : { 'ignore-login-next': 'true' },
+        encode		  : true
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log(data)
+        switch (data.status) {
+          case 400:   // Bad requests
+            switch(data.code) {
+              case 31:
+                autoHideNotify('warning','top-left', 'Mislukt', 'Geen actieve laadsessie!')
+                break
+              default:
+                autoHideNotify('warning','top-left', 'Mislukt', 'Onbekende oorzaak.')
+            }
+            captureOdometerButton(BUTTONSTATE_FAILED)
+            break
+          case 405:   // Method not allowed
+            switch(data.code) {
+              case 47:
+                autoHideNotify('warning','top-left', 'Al actief', 'Taak is al actief.')
+                break
+              default:
+                autoHideNotify('warning','top-left', 'Mislukt', 'Onbekende oorzaak.')
+            }
+            captureOdometerButton(BUTTONSTATE_FAILED)
+            break
+          case 202:   // Accepted
+            autoHideNotify('success','top-left', 'Verzoek succesvol', 'Kilometerstand wordt opgehaald voor sessie ' + 
+                            data.chargeSession + ', condense is ' + (data.condense ? 'in' : 'uit') + 'geschakeld.')
+            captureOdometerButton(BUTTONSTATE_REQUESTED)
+            break
+          default:
+            autoHideNotify('warning','top-left', 'Mislukt', 'Onbekende oorzaak.')
+            captureOdometerButton(BUTTONSTATE_FAILED)
+        }
+      })
+      .fail(function() {
+        autoHideNotify('warning','top-left', 'Mislukt', 'Kilometerstand ophalen mislukt.')
+        captureOdometerButton(BUTTONSTATE_FAILED)
+      })
+      .always(function() {
+        // Remove spinner
+        $('.spinner').hide()
+      })
+    }
+
+    let rfidTokens = {}
+    let unfilteredData = null
+    let filters = []
+    function getRfidTokens() {
+      console.log(timestamp() + ' getRfidTokens()')            
+      $.ajax({
+        type		    : 'GET',
+        url			    : '/rfid_tokens/',
+        contentType : "application/json",
+        dataType	  : 'json',
+        headers     : { 'ignore-login-next': 'true' },
+        encode		  : true
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log(data)
+        $.each(data, function(i,val) {
+          rfidTokens[val.rfid] = val
+        })
+        // Force redraw
+        if (dt != undefined) {
+          dt.rows().invalidate().draw()
+        }
+        $('[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+        // Redraw filter select
+        console.log("select#filterReport > option ", $("select#filterReport > option"))
+        $("select#filterReport > option").each(function() {
+          if (this.value in rfidTokens && isData(rfidTokens[this.value].name)) {
+            this.text = rfidTokens[this.value].name
+          }
+        })
+      })
+      .fail(function() {
+        autoHideNotify('error','top-left', 'Probleem fout', 'RFID Token data niet beschikbaar.')
+      })
+      .always(function() {
+      })
+    }
+    function isData(val) {
+      return (val != undefined && val != null && val !== "None" && val !== '')
+    }
+    function addOnNewline(str, addition, newline) {
+      return (!str.endsWith(newline) && str.length > 0) ? str + newline + addition : str + addition
+    }
+    function filterTable() {
+      // Start with whole table
+      dt.clear()
+      $.each(unfilteredData, function(index, row) {
+        dt.row.add(row)
+      })
+      dt.draw()
+      // Apply all filters on token and on energy_device_id
+      var filteredData = dt.rows().indexes().filter( function ( value, index ) {
+        return (filters.indexOf(dt.row(value).data()[1]) > -1) ||   // token
+               (filters.indexOf(dt.row(value).data()[8]) > -1)      // energy_device_id
+      })
+      dt.rows( filteredData )
+        .remove()
+        .draw()
+      // Enable tooltip
+      $('[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+    }
+
+    function getOptionList( heading_text, heading_value, data ) {
+      console.log('getOptionList() ', data)
+      let uniqueList = []
+      $.each(data, function( index, value ) {
+        uniqueList[value.energy_device_id] = '<option value="' + value.energy_device_id + '" style="font-style: italic;"><span class="filterText">' + value.energy_device_id + '</span></option>'
+        uniqueList[value.rfid] = '<option value="' + value.rfid + '" style="font-style: italic;">' + 
+                                 (value.rfid in rfidTokens && isData(rfidTokens[value.rfid].name) ? 
+                                  rfidTokens[value.rfid].name :
+                                  value.rfid
+                                 ) +
+                                 '</option>'
+      })
+      return '<option value="' + heading_value + '" style="font-style: italic;">' + heading_text + '</option>' +
+             Object.values(uniqueList).join('')
+    }
+    function addNobr( s ) {
+      return '<nobr>' + s + '</nobr>'
+    }
+    function removeNobr( s ) {
+      return s.replace('<nobr>', '').replace('</nobr>', '').trim()
+    }
+    function parseDateStr( d ) {
+      // <nobr>DD\MM\YYYY, HH:mm:ss</nobr>  -> YYYY-MM-DDTHH:mm:ss.sss -> Date
+      d = removeNobr( d )
+      d = d.substring(6, 10) + '-' + d.substring(3, 5) + '-' + d.substring(0, 2) + 'T' + d.substring(12, 20) + '.000'
+      return new Date(d)
+    }
+    function getInt( i ) {
+      return parseInt(i.replace(/<[^>]*>?/gm, '').replace(/kwh/ig, '').replace(',', '.').replace('€', '').replace('$', '').replace('&euro;', '').replace(/km/ig, '').trim())
+    }
+    $.fn.dataTableExt.oSort["otimestamp-desc"] = function (x, y) {
+      // YYYY-MM-DDTHH:mm:ss.sss
+      return (parseDateStr(x).getTime() > parseDateStr(y).getTime() ? -1 : 1)
+    }
+    $.fn.dataTableExt.oSort["otimestamp-asc"] = function (x, y) {
+      // YYYY-MM-DDTHH:mm:ss.sss
+      return (parseDateStr(x).getTime() < parseDateStr(y).getTime() ? -1 : 1)
+    }
+    $.fn.dataTableExt.oSort["oenergy-desc"] = function (x, y) {
+      // xxxkWh
+      return (getInt(x) > getInt(y) ? -1 : 1)
+    }
+    $.fn.dataTableExt.oSort["oenergy-asc"] = function (x, y) {
+      // xxxkWh
+      return (getInt(x) < getInt(y) ? -1 : 1)
+    }
+    $.fn.dataTableExt.oSort["oamount-desc"] = function (x, y) {
+      // € xx.xx
+      return (getInt(x) > getInt(y) ? -1 : 1)
+    }
+    $.fn.dataTableExt.oSort["oamount-asc"] = function (x, y) {
+      // € xx.xx
+      return (getInt(x) < getInt(y) ? -1 : 1)
+    }
+    $.fn.dataTableExt.oSort["omilage-desc"] = function (x, y) {
+      // xx.xxkm
+      return (getInt(x) > getInt(y) ? -1 : 1)
+    }
+    $.fn.dataTableExt.oSort["omilage-asc"] = function (x, y) {
+      // xx.xxkm
+      return (getInt(x) < getInt(y) ? -1 : 1)
+    }
+
+    let cargerData = {}
+    function getChargerConfig() {
+      console.log(timestamp() + ' getChargerConfig()')
+            
+      $.ajax({
+        type		    : 'GET',
+        url			    : '/charger_config/',
+        contentType : "application/json",
+        dataType	  : 'json',
+        headers     : { 'ignore-login-next': 'true' },
+        encode		  : true,
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log(data)
+        $.each(data, function(i,val) {
+          cargerData[val.charger_id] = val
+        })
+        // Force redraw
+        if (dt != undefined) {
+          dt.rows().invalidate().draw()
+        }
+        $('[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+        // Redraw filter select
+        console.log("select#filterReport > option ", $("select#filterReport > option"))
+        $("select#filterReport > option").each(function() {
+          if (this.value in cargerData && isData(cargerData[this.value].charger_name)) {
+            this.text = cargerData[this.value].charger_name
+          }
+        })
+      })
+      .fail(function() {
+        autoHideNotify('error','top-left', 'Probleem fout', 'Charger data niet beschikbaar.')
+      })
+      .always(function() {
+      })
+    }
+
+    function getChargeSessions() {
+      console.log(timestamp() + ' getChargeSessions()')
+            
+      $.ajax({
+        type		    : 'GET',
+        url			    : '/charge_sessions/',
+        contentType : "application/json",
+        dataType	  : 'json',
+        headers     : { 'ignore-login-next': 'true' },
+        encode		  : true,
+        data        : {
+          // from  - [optional] earliest startTime
+          // to    - [optional] latest startTime
+          // limit - [optional] max number of entries
+        },
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log(data)
+        d = new Date()
+        dStr = ( (weekday[d.getDay() %7]).substring(0, 2) + ' ' + 
+                  d.getDate() + ' ' + (months[d.getMonth() %12]) + ' ' + d.getFullYear() + ' ' +
+                  d.getHours() + ':' +
+                 (d.getMinutes() < 10 ? '0' : '') + d.getMinutes() + 'u'
+                )
+        dt = $('table#charge_sessions').DataTable( {
+          "pageLength": 25,
+          "order": [[ 0, "desc" ]], // id (was start_time, has a bug in string time format)
+          dom: 'Blfrtip',
+          buttons: [{
+            extend: 'excelHtml5',
+            text: "<i class='far fa-file-excel'></i> Excel",
+            className: 'btn btn-low-key btn-sm',
+            title: 'Oppleo laadsessies',
+            messageTop: dStr,
+            messageBottom: 'Oppleo laadpunt (c) 2021 oppleo.nl',
+            filename: ('Oppleo laadsessies - ' + dStr.replace(':', '.')),
+            footer: false,
+            exportOptions: {
+              orthogonal: {
+                display: 'Plain'
+              },
+              columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ],
+              format: {
+                body: function(data, row, column, node) {
+                  data = $('<p>' + data + '</p>').text();
+                  return $.isNumeric(data.replace(',', '.')) ? data.replace(',', '.') : data;
+                }
+              }
+            }
+          }, {
+            extend: 'pdfHtml5',
+            text: "<i class='far fa-file-pdf'></i> PDF",
+            className: 'btn btn-low-key btn-sm',
+            orientation: 'landscape',
+            pageSize: 'A4',
+            title: 'Oppleo laadsessies',
+            messageTop: dStr,
+            messageBottom: 'Oppleo laadpunt (c) 2021 oppleo.nl',
+            filename: ('Oppleo laadsessies - ' + dStr.replace(':', '.')),
+            footer: true,
+            exportOptions: {
+              orthogonal: {
+                display: 'Print'
+              },
+              columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]
+            }
+          }, {
+            extend: 'print',
+            text: "<i class='fas fa-print'></i> Print",
+            className: 'btn btn-low-key btn-sm',
+            orientation: 'landscape',
+            pageSize: 'A4',
+            title: 'Oppleo laadsessies',
+            messageTop: dStr,
+            messageBottom: 'Oppleo laadpunt (c) 2021 oppleo.nl',
+            filename: ('Oppleo laadsessies - ' + dStr.replace(':', '.')),
+            footer: true,
+            exportOptions: {
+              orthogonal: {
+                display: 'Print'
+              },
+              columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]
+            },
+            customize: function ( win ) {
+              $(win.document.body)
+                .css( 'font-size', '10pt' ) 
+              $(win.document.body).find( 'table' )
+                .addClass( 'compact' )
+                .css( 'font-size', 'inherit' )
+            }
+          },{
+            text: '<select class="form-control form-control-sm" id="filterReport" name="filterReport">' + getOptionList('Uitsluiten:', '-', data) + '</select>',
+            className: 'mt-0 mb-0 ml-3 pt-0 pb-0 pl-0 pr-0'
+          }],
+          "createdRow": function(row, data, dataIndex) {
+            $(row).toggleClass("text-info").fadeOut(800, function() {              
+              $(this).toggleClass("text-info").fadeIn(50)
+            })
+          },
+          "columnDefs": [{
+            // RFID token [2]
+            "targets": 1,
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain' || type.display == 'Print')) {
+                // Excel export, skip the markup
+                return data == undefined || data === "None" ? "" : data
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                if (isEditMode()) {
+                  return '<span>' + (data in rfidTokens && isData(rfidTokens[data].name) ? rfidTokens[data].name : data) + '</span>'
+                }
+                tooltipText = data  // First line is the token id (rfid)
+                tooltipText = (data in rfidTokens && isData(rfidTokens[data].vehicle_make) ? 
+                              addOnNewline(tooltipText, rfidTokens[data].vehicle_make, '<br/>') : 
+                              tooltipText
+                            )
+                tooltipText = (data in rfidTokens && isData(rfidTokens[data].vehicle_model) ? 
+                              tooltipText + ' ' + rfidTokens[data].vehicle_model : 
+                              tooltipText
+                            )
+                tooltipText = (data in rfidTokens && isData(rfidTokens[data].license_plate) ? 
+                              addOnNewline(tooltipText, rfidTokens[data].license_plate, '<br/>') : 
+                              tooltipText
+                            )
+                returnStr = (data in rfidTokens && isData(rfidTokens[data].name) ? 
+                              '<span data-toggle="tooltip" \
+                                     data-placement="bottom" \
+                                     data-html="true" \
+                                     stype="cursor: pointer;" \
+                                     onMouseOver="javascript:mouseOverTableRowButton(false);" \
+                                     onMouseOut="javascript:mouseOverTableRowButton(true);" \
+                                     title="<em>' +  tooltipText + '</em>" \
+                                     >' : 
+                              '<span>'
+                    )
+                return (data == undefined || data === "None" ? 
+                        returnStr + '<i class="fas fa-ban"></i>' + 
+                                  '</span>' 
+                        : 
+                        returnStr + '<a href="/rfid_tokens/' + data + '" target="_self"' +
+                                      ' onMouseOver="javascript:mouseOverTableRowButton(false);"' +
+                                      ' onMouseOut="javascript:mouseOverTableRowButton(true);">' + 
+                                      (data in rfidTokens && isData(rfidTokens[data].name) ? rfidTokens[data].name : data) + 
+                                    '</a>' +
+                                  '</span>'
+                       )
+              }
+            }
+          }, {
+            // start_time [3] and end_time [7]
+            "targets": [2, 6],
+            //"sorting": true,
+            "orderable": true,
+            "type": "otimestamp",  // For sorting functione
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain')) {
+                // Excel export, only date
+                if (data == undefined || data === "None" || typeof data != "string" || (data.trim()).length != 20) {
+                  return ""
+                }
+                d = parseDate(data)
+                // 19-02-2020  18:20:02
+                return (d.getDate() < 10 ? '0' : '') + d.getDate() + '-' +
+                       (d.getMonth() < 9 ? '0' : '') + (d.getMonth() +1) + '-' +
+                        d.getFullYear() + '  ' +
+                       (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' +
+                       (d.getMinutes() < 10 ? '0' : '') + d.getMinutes() + ':' +
+                       (d.getSeconds() < 10 ? '0' : '') + d.getSeconds()
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                if (data == undefined || data === "None") {
+                  return ""
+                }
+                if (typeof data != "string" || (data.trim()).length != 20) {
+                  return data
+                }
+                d = parseDate(data)
+                // 19-02-2020  18:20:02
+                return (weekday[d.getDay() %7]).substring(0, 2) + ' ' + 
+                        d.getDate() + ' ' + (months[d.getMonth() %12]).substring(0, 3) + ' ' + d.getFullYear() + ' ' +
+                        d.getHours() + ':' +
+                       (d.getMinutes() < 10 ? '0' : '') + d.getMinutes() + 'u'
+              }
+            }
+          }, {
+            // odometer [6]
+            "targets": 5,
+            //  "sorting": false,
+            "orderable": true,
+            "type": "omilage",
+            "render": function (data, type, row, rcIx) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain')) {
+                // Excel export, skip the 'km'
+                return data == undefined || data === "None" ? "" : data
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                // Valid token (existing and not expired), and odometer capture enabled
+                let canGetOdometer =  (rfidTokens != undefined && row[1] in rfidTokens &&
+                                  rfidTokens[row[1]].make_api_authorized &&
+                                  rfidTokens[row[1]].get_odometer
+                                 )
+
+                return ( data == undefined || data === "None" ? 
+                        ( canGetOdometer && row[6] == "-" && !isEditMode() ? 
+                          // First row
+                          '- <button' +
+                          '   type="button"' +
+                          '   id="captureOdometer"' +
+                          '   class="btn btn-xs waves-effect waves-light btn-outline-primary d-none" ' +
+                          '   style="float: right; height: 16px; padding-top: 0px;"' +
+                          '   data-toggle="tooltip" ' +
+                          '   data-placement="bottom" ' +
+                          '   data-html="true" ' +
+                          '   onMouseOver="javascript:mouseOverTableRowButton(false);"' +
+                          '   onMouseOut="javascript:mouseOverTableRowButton(true);"' +
+                          '   title="<em>Km stand ophalen mislukt. Km stand nogmaals ophalen.</em>"' +
+                          '   >' +
+                          '   <i class="fas fa-redo-alt" style="font-size: 12px;"></i>' +
+                          '  </button>'
+                        :
+                          '-'
+                        )
+                      : 
+                      '<span style="text-align: right;">' + data + 'km</span>'
+                      )
+              }
+            }
+          }, {
+            // start energy [5], end energy [8], total energy used [11]
+            "targets": [4, 7, 10],
+            //"sorting": false,
+            "orderable": true,
+            "type": "oenergy",
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain')) {
+                // Excel export, skip the 'kWh' and change . with ,
+                if (data == undefined || data === "None") {
+                  return ""
+                }
+                return (Math.round(data * 10) /10)
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                return data == undefined || data === "None" ? 
+                        "-" : 
+                        '<span style="text-align: right;">' + (Math.round(data * 10) /10) + 'kWh</span>'
+              }
+            }
+          }, {
+            "targets": [8],
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain' || type.display == 'Print')) {
+                // Excel export, skip the markup
+                return ( data == undefined || data === "None" ? "" : 
+                        (data in cargerData && isData(cargerData[data].charger_name) ? cargerData[data].charger_name : data)  
+                        )
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                if (isEditMode()) {
+                  return '<span>' + (data in cargerData && isData(cargerData[data].charger_name) ? cargerData[data].charger_name : data) + '</span>'
+                }
+                tooltipText = "Laadpunt ref: <i><b>" + data + "</i></b>" // The charger ID
+                returnStr = (data in cargerData && isData(cargerData[data].charger_name) ? 
+                              '<span data-toggle="tooltip" \
+                                     data-placement="bottom" \
+                                     data-html="true" \
+                                     stype="cursor: default;" \
+                                     onMouseOver="javascript:mouseOverTableRowButton(false);" \
+                                     onMouseOut="javascript:mouseOverTableRowButton(true);" \
+                                     title="<em>' +  tooltipText + '</em>" \
+                                     >' : 
+                              '<span>'
+                    )
+                return (data == undefined || data === "None" ? 
+                        returnStr + '<i class="fas fa-ban"></i>' + 
+                                  '</span>' 
+                        : 
+                        returnStr + (data in cargerData && isData(cargerData[data].charger_name) ? cargerData[data].charger_name : data) + 
+                                  '</span>'
+                       )
+              }
+            }
+
+          }, {
+            // Tariff [10] and price [12]
+            "targets": [9, 11],
+            "type": "oamount",
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain')) {
+                // Excel export, change . with ,
+                if (data == undefined || data === "None") {
+                  return ""
+                }
+                return '&euro; ' + (Math.round(data * 100) /100).toString().replace('.', ',')
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                return data == undefined || data === "None" ? 
+                        "-" : 
+                        '<span style="text-align: right;">&euro; ' + (Math.round(data * 100) /100).toFixed(2) + '</span>'
+              }
+            }
+          }, {
+            // Buttons [13]
+            "targets": 12,
+            "sorting": false,
+            "orderable": false,
+            "render": function (data, type, row) {
+              // Render for screen: type = 'display'
+              // Render for Excel export: type = { display: 'Plain'}
+              if (type.hasOwnProperty('display') && (type.display == 'Plain')) {
+                // Excel export, skip this column
+                return data
+              } else {
+                // Default - type = 'display' - on screen or other exports
+                // Empty and closed charge session?
+                if (row[11] == 0 && row[6] != "-" && !isEditMode()) {
+                  // Show delete button
+                  return '<button' +
+                         '   type="button"' +
+                         '   class="btn btn-sm btn-table-row waves-effect waves-light btn-outline-danger" ' +
+                         '   style="height: 18px; padding-top: 0px;"' +
+                         '   data-toggle="tooltip" ' +
+                         '   data-placement="bottom" ' +
+                         '   data-html="true" ' +
+                         '   title="<em>Verwijder lege laadsessie (' + row[0] + ').</em>"' +
+                         '   onclick="window.location.href=\'/delete_charge_session/' + row[0] + '\'"' +
+                         '   onMouseOver="javascript:mouseOverTableRowButton(false);"' +
+                         '   onMouseOut="javascript:mouseOverTableRowButton(true);"' +
+                         '   >' +
+                         '   <i class="fas fa-trash-alt" style="font-size: 12px;"></i>' +
+                         '</button>'
+                }
+                // Open charge session?
+                if (row[6] == "-" && !isEditMode()) {
+                  // Show close button
+                  return '<button' +
+                         '   type="button"' +
+                         '   class="btn btn-sm btn-table-row waves-effect waves-light btn-outline-warning" ' +
+                         '   style="height: 18px; padding-top: 0px;"' +
+                         '   data-toggle="tooltip" ' +
+                         '   data-placement="bottom" ' +
+                         '   data-html="true" ' +
+                         '   title="<em>Be&euml;indig open laadsessie.</em>"' +
+                         '   onclick="window.location.href=\'/stop_charge_session/' + row[0] + '\'"' +
+                         '   onMouseOver="javascript:mouseOverTableRowButton(false);"' +
+                         '   onMouseOut="javascript:mouseOverTableRowButton(true);"' +
+                         '   >' +
+                         '   <i class="far fa-hand-paper" style="font-size: 12px;"></i>' +
+                         '</button>'
+                }
+
+                // Else just return nothing
+                return data
+              }
+            }
+          }],
+          "searching": false
+        })
+
+        // Make sure tooltips are initialized on each draw
+        $('table#charge_sessions').on('draw.dt', function() {
+          $('[data-toggle="tooltip"]').tooltip()
+          if ($('button#captureOdometer').length > 0) {
+            captureOdometerButton(BUTTONSTATE_INITIAL)
+          }
+        })
+
+        // Filter table when filter selected
+        $('select[id="filterReport"]').on('change', function() {
+          if (this.value != "-") {
+            // RFID?
+            rfid = null
+            tokenRfid = this.value
+            tokenName = (tokenRfid in rfidTokens && isData(rfidTokens[tokenRfid].name) ? rfidTokens[tokenRfid].name : null)
+            // Button
+            dt.button().add( 4, {
+              text: (tokenName != null ? "<span data-toggle='tooltip' data-placement='bottom' data-html='true' style='cursor: pointer;' title='<em>" + tokenRfid + "</em>'><span class='filterText d-none'>" + tokenRfid + "</span>" : '') +
+                    '<span' + (tokenName == null ? ' class="filterText"' : '') + '>' + (tokenName != null ? tokenName : tokenRfid) + '</span> <i class="fas fa-times"></i>' +
+                    (tokenName != null ? '</span>' : ''),
+              className: 'ml-3 pl-3 pr-3 btn btn-low-key-warning btn-sm',
+              action: function ( e, dt, node, config ) {
+                  // Filter
+                  tokenRfid = node.find('.filterText').text()
+                  // Remove filter from list
+                  filters = filters.filter(function(value, index, arr) { 
+                    return value !== tokenRfid 
+                  })
+                  // Filter table
+                  filterTable()
+                  // Add option back to filter
+                  $('select[id="filterReport"]').append('<option value="' + tokenRfid + '" style="font-style: italic;">' + 
+                                                        (tokenRfid in rfidTokens && isData(rfidTokens[tokenRfid].name) ? rfidTokens[tokenRfid].name : tokenRfid) + 
+                                                        '</option>')
+                  // Remove button
+                  this.remove()
+                  // Remove rtooltips
+                  $(".tooltip").tooltip("hide")
+              }
+            })
+            // Remove option from selectbox
+            $(this).find("option[value='" + this.value + "']").remove()
+            // Reset selectbox to first
+            $(this).find("option[value='-']").attr('selected','selected')
+
+            // Filter list
+            filters.push(tokenRfid)
+            // Filter table
+            filterTable()
+          }
+        })
+
+        data.forEach(element => {
+
+          dt.row.add([
+            element.id,
+            element.rfid,
+            ( (typeof element.start_time === 'string' || element.start_time instanceof String) ?
+              addNobr( element.start_time ) :
+              '-'
+            ),
+            ( ((typeof element.trigger === 'string' || element.trigger instanceof String) && element.trigger != "None") ?
+              element.trigger :
+              '-'
+            ),
+            ( (typeof element.start_value === 'string' || element.start_value instanceof String) ?
+              element.start_value :
+              '-'
+            ),
+            ( (typeof element.km === 'string' || element.km instanceof String) ?
+              element.km :
+              '-'
+            ),
+            ( (typeof element.end_time === 'string' || element.end_time instanceof String) ?
+              addNobr( element.end_time ) :
+              '-'
+            ),
+            ( (typeof element.end_value === 'string' || element.end_value instanceof String) ?
+              element.end_value :
+              '-'
+            ),
+            element.energy_device_id,
+            ( (typeof element.tariff === 'string' || element.tariff instanceof String) ?
+              element.tariff :
+              '-'
+            ),
+            ( (typeof element.total_energy === 'string' || element.total_energy instanceof String) ?
+              element.total_energy :
+              '-'
+            ),
+            ( (typeof element.total_price === 'string' || element.total_price instanceof String) ?
+              element.total_price :
+              '-'
+            )
+            ,""
+          ]).draw( false )
+          $('button#edit_' + element.rfid).click(function() {
+            //Do stuff when clicked
+            window.location = location + $(this).attr('id').split("_").pop();
+          })
+        })
+
+        unfilteredData = dt.rows().data()
+
+        $('[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+      })
+      .fail(function() {
+        notify('error','top-left', 'Probleem', 'Laadsessiedata niet beschikbaar.');
+      })
+      .always(function() {
+
+        let h = history
+
+        // Remove spinner
+        $('.spinner').hide()
+      })
+    }
+
+    let changeChargeSessionModal = null
+    let askPasswordModal = null
+    let APF_CHANGE_SESSION = 1 
+    let APF_STOP_SESSION = 2 
+    let APF_DELETE_SESSION = 3 
+    let askPasswordFor = 0
+    function showChangeChargeSessionModal(data) {
+      // Init modal dialog
+      $('span#ccsmChargeSessionId').html(data[0])
+      $('span#apmChargeSessionId').html(data[0])
+      
+      $('oppleo-edit-select#ccsmRfidToken')[0].options = 
+          '[' + Object.values(rfidTokens).map(token => '{ "text": "'+token.name+'", "id": "'+token.rfid+'"'+(token.rfid==data[1]?', "selected": "true"':'')+' }').join(", ") + ']'
+
+      let startDate = parseDate( removeNobr( data[2] ) )
+      $('input[name="ccsmStarttimeDate"]').val( startDate.getDate() + ' ' + months[startDate.getMonth()] + ' ' + startDate.getFullYear() )
+      $('oppleo-edit-time#ccsmStarttimeTime')[0].value = (startDate.getHours()<10?'0':'') + startDate.getHours() + ":" + (startDate.getMinutes()<10?'0':'') + startDate.getMinutes() + 'u' 
+
+      $('oppleo-edit-select#ccsmTrigger')[0].options = 
+          '[' + ['AUTO', 'RFID', 'WEB'].map(trigger => '{ "text": "'+trigger+'", "id": "'+trigger+'"'+(trigger==data[3]?', "selected": "true"':'')+' }').join(", ") + ']'
+      
+      $('#ccsmStartValue')[0].value = data[4]
+      $('#ccsmOdometer')[0].value = (data[5] == 'None' ? '' : data[5])
+
+      let endDate = parseDate( removeNobr( data[6] ) )
+      if (endDate != undefined) {
+        $('input[name="ccsmEndtimeDate"]').val( endDate.getDate() + ' ' + months[endDate.getMonth()] + ' ' + endDate.getFullYear() )
+        $('oppleo-edit-time#ccsmEndtimeTime')[0].value = (endDate.getHours()<10?'0':'') + endDate.getHours() + ":" + (endDate.getMinutes()<10?'0':'') + endDate.getMinutes() + 'u' 
+      }
+      $("#chargeSessionModalEndTimeOpenSession").toggleClass('d-none', (endDate != undefined))
+      $("#chargeSessionModalEndTimeClosedSession").toggleClass('d-none', (endDate == undefined))
+
+      $('#ccsmEndValue')[0].value = data[7]
+      $('#ccsmCharger').val( data[8] )
+
+      $('#ccsmTariff')[0].value = data[9].replace('.', ',')
+
+      $('span#ccsmTotalEnergy').html(Math.round(data[10] * 10) /10)
+      $('span#ccsmPrice').html((Math.round(data[11] * 100) /100).toFixed(2).toString().replace('.', ','))
+
+      $('.date-picker').datepicker({
+          todayHighlight: true,
+          autoclose: true,
+          startDate : undefined,
+          endDate   : undefined,
+          format: "d MM yyyy",    // 7 January 2020
+          language: 'nl'
+      })
+
+      // Default disabled
+      $('button#change-chargesession-modal-footer-saveaction').attr("disabled", true)
+
+      changeChargeSessionModal.modal('show')
+    }    
+
+    function getRowDataForSessionId(sessionId) {
+      // Selected charge session
+      return dt.rows().data().filter(function ( row, idx ) {             
+        return (row[0] == sessionId)
+      })[0]
+    }
+    function getStartEndTimestamp(newDate, newTime, origStamp) {
+      // <nobr>dd/MM/YYYY, HH:mm:ss</nobr>
+      Object.entries(months).forEach((entry, idx) => {
+        newDate = newDate.replace(' '+entry[1]+' ', '/'+(idx+1<10?'0':'')+(idx+1)+'/')
+      })
+      newDate = ( newDate.length == 9 ? '0' : '' ) + newDate  // Add leading zero if required
+      // Use original seconds if time hasn't changed
+      newTime = newTime + (newTime == origStamp.substring(18, 23) ? origStamp.substring(23, 26) : ":00")
+      return newDate + ', ' + newTime
+    }
+
+    function isChargeSessionModalValid() {
+      // Anuthion changed, and all valid?
+      return $("oppleo-edit-str#ccsmStartValue")[0].valid() &&
+             $("oppleo-edit-str#ccsmOdometer")[0].valid() &&
+             $("oppleo-edit-str#ccsmEndValue")[0].valid() &&
+             $("oppleo-edit-str#ccsmTariff")[0].valid()
+    }
+    function chargeSessionModalData() {
+      let modalData = {}
+      modalData['id'] = $('span#ccsmChargeSessionId').text()
+      // Selected charge session
+      let data = getRowDataForSessionId( modalData['id'] )
+      modalData['rfid'] = $('oppleo-edit-select#ccsmRfidToken')[0].selected[0].id
+      modalData['start_time'] = getStartEndTimestamp($('input[name="ccsmStarttimeDate"]').val(),
+                                                     $('oppleo-edit-time#ccsmStarttimeTime')[0].value.substring(0, 5), 
+                                                     data[2]
+                                                     )
+      modalData['trigger'] = $($('oppleo-edit-select#ccsmTrigger')[0].$select).find("option:selected").text()
+      modalData['start_value'] = $("oppleo-edit-str#ccsmStartValue")[0].$input.value.replace(',', '.')
+      modalData['km'] = $('#ccsmOdometer')[0].$input.value
+
+      // Open session, no end_time
+      if ($("#chargeSessionModalEndTimeOpenSession").hasClass('d-none')) {
+        // Closed session, has end_time
+        modalData['end_time'] = getStartEndTimestamp($('input[name="ccsmEndtimeDate"]').val(),
+                                                     $('oppleo-edit-time#ccsmEndtimeTime')[0].value.substring(0, 5), 
+                                                     data[6]
+                                                     )
+      }
+      modalData['end_value'] = $("oppleo-edit-str#ccsmEndValue")[0].$input.value.replace(',', '.')
+      modalData['charger'] = $("input#ccsmCharger").val()
+      modalData['tariff'] = $("oppleo-edit-str#ccsmTariff")[0].$input.value.replace(',', '.')
+      return modalData
+    }    
+    function isChargeSessionModalChanged() {
+      // Changed?
+      let modalData = chargeSessionModalData()
+      // Selected charge session
+      let data = getRowDataForSessionId( modalData['id'] )
+
+      return modalData['rfid'] != data[1] ||
+             //starttimeDate + ', ' + starttimeTime != data[2].substring(6, 23) || // Compare only minutes
+             modalData['start_time'] != removeNobr( data[2] ) ||
+             modalData['trigger'] != data[3] ||
+             modalData['start_value'] != data[4] ||
+             ( 
+               (modalData['km'] != data[5] && data[5] != 'None') ||
+               (modalData['km'] != '' && data[5] == 'None')
+             ) ||
+             //endtimeDate + ', ' + endtimeTime != data[6].substring(6, 23) || // Compare only minutes
+             ('end_time' in modalData && modalData['end_time'] != removeNobr( data[6] )) ||
+             modalData['end_value'] != data[7] || 
+             modalData['charger'] != data[8] ||
+             modalData['tariff'] != data[9]
+    }
+    function highlightCell( rowIndex, cellIndex ) {
+      let el = $(dt.row(rowIndex).nodes().to$().find('td:eq('+cellIndex+')')[0])
+      let origBgColor = el.css("background-color")
+      let origColor = el.css("color")
+      let origFontWeight = el.css("font-weight")
+      el.animate({
+          backgroundColor: "#00b19d",
+          color: "#fffff",
+          fontWeight: "bold"
+        }, 300, function() {
+          $(this).animate({
+              backgroundColor: origBgColor,
+              color: origColor,
+              fontWeight: origFontWeight
+            }, 1000, function() {
+              $(this).animate({
+                  backgroundColor: "#00b19d",
+                  color: "#fffff",
+                  fontWeight: "bold"
+                }, 100, function() {
+                  $(this).animate({
+                      backgroundColor: origBgColor,
+                      color: origColor,
+                      fontWeight: origFontWeight
+                    }, 2000, function() {
+                      $(this).css("background-color", "")
+                      $(this).css("color", "")
+                      $(this).css("font-weight", "")
+                    }
+                  )
+                }
+              )
+            }
+          )
+        }
+      )
+    }
+
+    function highlightRowDanger( rowIndex, callback = undefined ) {
+      return highlightRow( rowIndex, '#ef5350', callback )
+    }
+    function highlightRowWarning( rowIndex, callback = undefined ) {
+      return highlightRow( rowIndex, '#ffaa00', callback )
+    }
+    function highlightRowSuccess( rowIndex, callback = undefined ) {
+      return highlightRow( rowIndex, '#00b19d', callback )
+    }
+    function highlightRowPrimary( rowIndex, callback = undefined ) {
+      return highlightRow( rowIndex, '#3bafda', callback )
+    }
+    function highlightRow( rowIndex, color = '#ff0000', callback = undefined ) {
+      let rowEl = $(dt.row(rowIndex).nodes().to$())
+      let origBgColor = rowEl.css("background-color")
+      let origColor = rowEl.css("color")
+      let origFontWeight = rowEl.css("font-weight")
+      // 
+      rowEl.animate({
+          backgroundColor: color + " !important",
+          color: "#fffff",
+          fontWeight: "bold"
+        }, 300, function() {
+          $(this).animate({
+              backgroundColor: origBgColor,
+              color: origColor,
+              fontWeight: origFontWeight
+            }, 1000, function() {
+              $(this).animate({
+                  backgroundColor: color + " !important",
+                  color: "#fffff",
+                  fontWeight: "bold"
+                }, 100, function() {
+                  $(this).animate({
+                      backgroundColor: origBgColor,
+                      color: origColor,
+                      fontWeight: origFontWeight
+                    }, 2000, function() {
+                      $(this).css("background-color", "")
+                      $(this).css("color", "")
+                      $(this).css("font-weight", "")
+                      if ( callback != undefined ) {
+                        callback()
+                      }
+                    }
+                  )
+                }
+              )
+            }
+          )
+        }
+      )
+    }
+
+
+    function updateChargeSession( sessionData ) {
+      console.log(timestamp() + ' updateChargeSession()')            
+      $('.spinner').show()
+      postData = {
+        csrf_token    : '{{ csrf_token() }}',
+        session       : sessionData['id'],
+        password      : sessionData['password'],
+        data          : JSON.stringify(sessionData)
+      }
+      $.ajax({
+        type		    : 'POST',
+        url			    : '/charge_session/' + sessionData['id'] + '/update/',
+        //contentType : "application/json",
+        dataType	  : 'json',
+        headers     : { 'ignore-login-next': 'true' },
+        encode		  : false,
+        data        : postData
+      }) // using the done promise callback
+      .done(function(result) {
+        // log data to the console so we can see
+        console.log(result)
+
+        switch (result.status) {
+          case 401: // Unauthorized
+            // Keep password form open, show error
+            autoHideNotify('error','top-left', 'Autorisatie mislukt', 'Het wachtwoord is niet correct.')
+            break
+          case 200: // Ok
+            // Close password form
+            askPasswordModal.modal('hide')
+
+            let rowIndex = -1
+            dt.rows(function ( idx, rdata, node ) {             
+                if (rdata[0] == result.session) rowIndex = idx
+            })
+            // Update table to reflect changes. and add Change animation
+            for (fieldName in result.update) {
+              if (result.update[fieldName]['updated']) {
+                switch (fieldName) {
+                  case 'rfid':
+                      dt.cell( rowIndex, 1 ).data( result.update[fieldName]['value'] )
+                      highlightCell( rowIndex, 1 )
+                    break
+                  case 'start_time':
+                    dt.cell( rowIndex, 2 ).data( addNobr( result.update[fieldName]['value'] ) )
+                    highlightCell( rowIndex, 2 )
+                    break
+                  case 'trigger':
+                    dt.cell( rowIndex, 3 ).data( result.update[fieldName]['value'] )
+                    highlightCell( rowIndex, 3 )
+                    break
+                  case 'start_value':
+                    dt.cell( rowIndex, 4 ).data( result.update[fieldName]['value'] )
+                    highlightCell( rowIndex, 4 )
+                    break
+                  case 'km':
+                    dt.cell( rowIndex, 5 ).data( 
+                      (result.update[fieldName]['value'] != '' ?
+                        result.update[fieldName]['value'] :
+                        'None'
+                      )
+                    )
+                    highlightCell( rowIndex, 5 )
+                    break
+                  case 'end_time':
+                    dt.cell( rowIndex, 6 ).data( addNobr( result.update[fieldName]['value'] ) )
+                    highlightCell( rowIndex, 6 )
+                    break
+                  case 'end_value':
+                    dt.cell( rowIndex, 7 ).data( result.update[fieldName]['value'] )
+                    highlightCell( rowIndex, 7 )
+                    break
+                  case 'charger':
+                    dt.cell( rowIndex, 8 ).data( result.update[fieldName]['value'] )
+                    highlightCell( rowIndex, 8 )
+                    break
+                  case 'tariff':
+                    dt.cell( rowIndex, 9 ).data( result.update[fieldName]['value'] )
+                    highlightCell( rowIndex, 9 )
+                    break
+                  case 'total_energy':
+                    dt.cell( rowIndex, 10 ).data( result.update[fieldName]['value'] )
+                    highlightCell( rowIndex, 10 )
+                    break
+                  case 'total_price':
+                    dt.cell( rowIndex, 11 ).data( result.update[fieldName]['value'] )
+                    highlightCell( rowIndex, 11 )
+                    break
+                  default:  // session id etc, no change
+                    break
+                }
+              }
+            }
+            autoHideNotify('success','top-left', 'Gewijzigd', 'Laadsessie '+result.session+' is gewijzigd.')
+            break
+          case 400: // Bad request
+          default:  // Unknown
+            // Close password form, open change charge session dialog
+            autoHideNotify('error','top-left', 'Mislukt', 'Wijzigen van laadsessie mislukt.')
+            askPasswordModal.modal('hide')
+            changeChargeSessionModal.modal('show')
+            break
+        }
+      })
+      .fail(function(result) {
+        autoHideNotify('error','top-left', 'Mislukt', 'Wijzigen van laadsessie mislukt.')
+      })
+      .always(function(result) {
+        $('.spinner').hide()
+      })
+    }    
+    function isEditMode() {
+      return $('table#charge_sessions').hasClass('table-hover-warning')
+    }
+
+    function getChargeSessionUsageData( sessionId, successCallback = undefined, failedCallback = undefined, n = undefined ) {
+      console.log(timestamp() + ' getUsageData()')
+      $('.spinner').show()
+      $.ajax({
+        type		  : 'GET',
+        url			  : ('/charge_session/' + encodeURI(sessionId) + '/usage_data/'),
+        dataType	: 'json',
+        headers   : { 'ignore-login-next': 'true' },
+        encode		: true
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log(data)
+        // Call callback
+        if (successCallback != null) { successCallback(data) }
+      })
+      .fail(function() {
+        if (failedCallback != null) { failedCallback(data) }
+      })
+      .always(function() {
+        // Remove spinner
+        $('.spinner').hide()
+      })
+    }
+
+    function mouseOverTableRowButton( showRowHighlight ) {
+      $('table#charge_sessions').toggleClass('table-hover-success', showRowHighlight)
+    }
+    function formatGraphXAxis( min, max ) {
+
+          /*
+          min/max = seconds sinds epoch 
+          1616101994 
+          1615734632 
+          diff 367362 - 102 u (/3600) 
+          */
+      let diffInSeconds = Math.abs(min - max)
+      // calculate days
+      const days = Math.round(diffInSeconds / 86400)
+      diffInSeconds -= (Math.floor(diffInSeconds / 86400)) * 86400
+      // calculate hours
+      const hours = Math.round(diffInSeconds / 3600) % 24
+      diffInSeconds -= (Math.floor(diffInSeconds / 3600) % 24) * 3600
+      // calculate minutes
+      const minutes = Math.round(diffInSeconds / 60) % 60
+
+      if (days > 12) {
+        return { tickSize: [ 7, 'day' ],
+                 timeformat: '%e %b'
+               }
+      }
+      if (days > 1) {
+        return { tickSize: [ 1, 'day' ],
+                 timeformat: '%e %b'
+               }
+      }
+      if (hours > 12) {
+        return { tickSize: [ 2, 'hour' ],
+                 timeformat: '%H:%M', // %H:%M",
+               }
+      }
+      if (hours > 1) {
+        return { tickSize: [ 1, 'hour' ],
+                 timeformat: '%H:%M', // %H:%M",
+               }
+      }
+      if (minutes > 12) {
+        return { tickSize: [ 5, 'minute' ],
+                 timeformat: '%H:%M', // %H:%M",
+               }
+      }
+      return { tickSize: [ 1, 'minute' ],
+               timeformat: '%H:%M', // %H:%M",
+             }
+    }
+    function getGraphModalData( dataset, from, to) {
+      // Deep copy
+      let deepCopy = jQuery.extend(true, { }, dataset)
+
+      for (const [key, entry] of Object.entries(deepCopy)) {
+        entry.data = entry.data.filter( (dp) => dp[0] > from && dp[0] < to ) 
+        let i = 0
+      }
+      return deepCopy
+    }
+            
+    function showGraph( data ) {
+      $('#modal_flotgraph').empty()
+      showGraphModal.modal('show')
+
+      $('#csgChargerName').html(data[8])
+      $('#csgRfid').html((data[1] in rfidTokens?rfidTokens[data[1]].name:data[1]))
+      $('#csgChargeSessionId').html(data[0])
+      $('#csgChargeSessionIdTitle').html(data[0])
+      let startDate = parseDate( removeNobr( data[2] ) )
+      $('#csgFrom').html(startDate.getDate() + ' ' + months[startDate.getMonth()] + ' ' + startDate.getFullYear() + ', ' + (startDate.getHours()<10?'0':'') + startDate.getHours() + ":" + (startDate.getMinutes()<10?'0':'') + startDate.getMinutes() + 'u')
+
+      let endDate = parseDate( removeNobr( data[6] ) )
+      $('#csgUntill').html(
+            (endDate == undefined ? 
+              'nu'  // Open session
+              :
+              (startDate.getDate() != endDate.getDate() || startDate.getMonth() != endDate.getMonth() || startDate.getFullYear() != endDate.getFullYear() ? 
+              endDate.getDate() + ' ' + months[endDate.getMonth()] 
+                : 
+                ''
+              ) + 
+              (startDate.getFullYear() != endDate.getFullYear() ? 
+                ' ' + endDate.getFullYear() + ', '
+                :
+                (startDate.getDate() != endDate.getDate() || startDate.getMonth() != endDate.getMonth() ?
+                  ', '
+                  :
+                  ''
+                )
+              ) + 
+              (
+                (endDate.getHours()<10?'0':'') + endDate.getHours() + ":" + (endDate.getMinutes()<10?'0':'') + endDate.getMinutes() + 'u'
+              )
+            )
+          )
+      // For open sessions use end date now
+      endDate = (endDate == undefined ? new Date() : endDate)
+      let diffInSeconds = Math.abs(endDate - startDate) / 1000
+      // calculate days
+      const days = Math.round(diffInSeconds / 86400)
+      diffInSeconds -= (Math.floor(diffInSeconds / 86400)) * 86400
+      // calculate hours
+      const hours = Math.round(diffInSeconds / 3600) % 24
+      diffInSeconds -= (Math.floor(diffInSeconds / 3600) % 24) * 3600
+      // calculate minutes
+      const minutes = Math.round(diffInSeconds / 60) % 60
+      let diffStr = (
+          (days > 0 ?
+            (days > 1 ? days + ' dagen' : days + ' dag')
+            :
+            (hours > 0 ? 
+              hours + ' uur' 
+              : 
+              (minutes == 1 ? minutes + ' minuut' : minutes + ' minuten')
+            )
+          )
+        )
+      $('#csgDuration').html(diffStr)
+      $('#csgTariff').html('&euro; '+data[9].replace('.', ','))
+      $('#csgTotalusage').html((Math.round(data[10] * 10) /10)+'kWh')
+      $('#csgPrice').html(('<nobr>&euro; '+(Math.round(data[11] * 100) /100).toFixed(2).toString()+'</nobr>').replace('.', ','))
+
+      
+      let flotObj = undefined
+      getChargeSessionUsageData( data[0], 
+        (result) => {
+          // successCallback
+          var flotDataset = [ 
+            { label: 'Stroom [A]', data: [], color: "#00b19d", yaxis: 1, lines: { show: true, fill: true } },
+            { label: 'Energie [kWh]', data: [], color: "#ffaa00", yaxis: 2 } 
+          ]
+          var flotData_A = []
+          var flotData_kWh = []
+
+          var axis = { 
+            'x': {
+              'min': 0,
+              'max': 0
+            },
+            'y1': {
+              'min': 0,
+              'max': 0
+            },
+            'y2': {
+              'min': -1,
+              'max': 0
+            }
+          }
+
+          // Determine min/max - y2 (kWh total) is relative to the starting value
+          result.data.forEach( (element) => {
+            axis.y2.min = ( axis.y2.min == -1 ? element.kw_total : Math.min(element.kw_total, axis.y2.min) )
+            axis.y2.max = Math.max(element.kw_total, axis.y2.max)
+          })
+          // Adjust values
+          result.data.forEach( (element) => {
+            // created_at format 01/04/2020, 13:58:44
+            var ts = Math.round(parseDate(element.created_at).getTime() /1000)
+            var a = Math.round( (
+                      parseFloat(element.a_l1) +
+                      parseFloat(element.a_l1) +
+                      parseFloat(element.a_l1)
+                    ) * 10 ) / 10
+            flotData_A.push( [ ts, a ] )
+            // Absolute to relative
+            flotData_kWh.push( [ ts, (element.kw_total - axis.y2.min).toFixed(1) ] )
+            axis.x.min = (axis.x.min == 0 ? ts : Math.min(ts, axis.x.min))
+            axis.x.max = Math.max(ts, axis.x.max)
+            axis.y1.min = Math.min(a, axis.y1.min)
+            axis.y1.max = Math.max(a, axis.y1.max)
+          })
+          // Make absolute
+          axis.y2.max = axis.y2.max - axis.y2.min
+          axis.y2.min = 0
+
+          xaxisFormat = formatGraphXAxis( axis.x.min, axis.x.max )
+
+          flotDataset[0].data = flotData_A
+          flotDataset[1].data = flotData_kWh
+
+          // Blue:    "3bafda"
+          // Orange:  "#ffaa00"
+          // Green:   "#00b19d"
+          graphOptions = {
+            xaxis: { 
+              timezone: 'browser',
+              tickSize: xaxisFormat.tickSize,
+              timeformat: xaxisFormat.timeformat,
+              color: "#98a6ad", // Color of the horizontal line (not the numbers)
+              font: { 
+                size: 11,
+                lineHeight: 11
+              },
+              mode: "time",
+              min: axis.x.min,
+              max: axis.x.max
+            },
+            yaxes: [{   // Amps 0-25
+              min: 0, 
+              max: 25,
+              color: "#00b19d", // Color of the vertical line (not the numbers) "#00b19d"
+              // axisLabel: "Stroom [A]",
+              axisLabelUseCanvas: true,
+              axisLabelColor: '#FF0000',
+              tickFormatter: function (val, axis) {
+                return Math.round(val) + 'A'
+              },
+              font: { 
+                size: 11,
+                lineHeight: 11,
+                color: "#00b19d" //"#00b19d"
+              },
+              position: 'right'
+            }, {      // Energie 0-300
+              min: axis.y2.min, 
+              max: axis.y2.max*1.1,
+              color: "#ffaa00", // Color of the vertical line (not the numbers) "#00b19d"
+              // axisLabel: "Energie [kWh]",
+              tickFormatter: function (val, axis) {
+                return val.toFixed(1) + 'kWh'
+              },
+              font: { 
+                size: 11,
+                lineHeight: 11,
+                color: "#ffaa00" //"#00b19d"
+              },
+              position: 'left'
+            }],
+            grid : {
+              show : true,
+              aboveData : false,
+              color : '#98a6ad', 
+              borderColor : '#98a6ad', 
+              labelMargin : 15,
+              axisMargin : 0,
+              borderWidth : 0,
+              minBorderMargin : 5,
+              hoverable: true,
+              clickable: true
+/*
+            },
+            selection: {
+              mode: "xy"
+*/              
+			      }
+          }
+
+          flotObj = $.plot($("#modal_flotgraph"), flotDataset, graphOptions)
+
+          var axes = flotObj.getAxes()
+          axes.xaxis.options.min = axis.x.min 
+          axes.xaxis.options.max = axis.x.max
+          axes.yaxis.options.min = axis.y1.min
+          axes.yaxis.options.max = axis.y1.max 
+          axes.y2axis.options.min = axis.y2.min 
+          axes.y2axis.options.max = axis.y2.max
+          flotObj.setupGrid()             // if axis have changed
+          flotObj.draw()
+
+/*
+          $("#modal_flotgraph").bind("plotselected", function (event, ranges) {
+            // clamp the zooming to prevent eternal zoom
+            if (ranges.xaxis.to - ranges.xaxis.from < 0.00001) {
+              ranges.xaxis.to = ranges.xaxis.from + 0.00001
+            }
+            if (ranges.yaxis.to - ranges.yaxis.from < 0.00001) {
+              ranges.yaxis.to = ranges.yaxis.from + 0.00001
+            }
+            // do the zooming
+            flotObj = $.plot("#modal_flotgraph", getGraphModalData(flotDataset, ranges.xaxis.from, ranges.xaxis.to),
+
+              $.extend(true, {}, graphOptions, {
+                xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
+                yaxes: [
+                  { min: ranges.yaxis.from, max: ranges.yaxis.to },
+                  { min: ranges.y2axis.from, max: ranges.y2axis.to }
+                ]
+              })
+            )
+
+          })
+*/
+          $("#modal_flotgraph").bind("plothover", function (event, pos, item) {
+            if (!pos.x || !pos.y) {
+              return
+            }
+
+            if (item) {
+              var x = item.datapoint[0].toFixed(2)
+              var y = item.datapoint[1].toFixed(2)
+
+                
+              var d = new Date(parseInt(item.datapoint[0]) *1000)
+              var ttStr = '<span style="color: ' + item.series.color + ' !important; font-size: smaller;">' +
+                  '<i class="fas fa-charging-station"></i> ' + 
+                  item.datapoint[1] + 
+                  (item.series.label.endsWith('[A]') ? 'A (' + Math.round((parseFloat(item.datapoint[1])*230) / factor_Whkm) + 'km/u)' : 
+                    (item.series.label.endsWith('[kWh]') ? 'kWh (' + Math.round((parseFloat(item.datapoint[1])*1000) / factor_Whkm).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + 'km)' : '')
+                  ) +
+                  '</span><br>' + 
+                  '<span style="color: #98a6ad !important; font-size: smaller;">' + 
+                  '<i class="fa fa-calendar"></i> ' + 
+                  d.getDate() + " " + 
+                  months[d.getMonth()] + 
+                  " " + d.getFullYear() + 
+                  " " + (d.getHours() < 10 ? "0" : "" ) + d.getHours() +
+                  ":" + (d.getMinutes() < 10 ? "0" : "" ) + d.getMinutes() +
+                  'u</span>'
+
+              $("#graph_tooltip").html( ttStr )
+                .css({top: item.pageY+5, left: item.pageX+5})
+                .fadeIn(200);
+            } else {
+              $("#graph_tooltip").hide()
+            }
+          })
+          $("#modal_flotgraph").bind("plothovercleanup", function (event, pos, item) {
+            $("#graph_tooltip").hide()
+          })
+
+        },
+        (result) => {
+          // failedCallback
+        }
+      )
+    }
+
+
+    jQuery(document).ready(function () {
+      console.log(timestamp() + " file load completed!")
+      startWebSocket()
+      getChargeSessions()
+      getRfidTokens()
+      getChargerConfig()
+      // Admin?
+      $('div#showEnableSessionEdit').toggleClass("d-none", false)
+
+      $('input#enableSessionEdit').change(function() {
+        if ($(this).prop('checked')) {
+          $('table#charge_sessions').addClass('table-hover-warning')
+          $('table#charge_sessions').removeClass('table-hover-success')
+          $('table#charge_sessions').css('cursor', 'pointer')
+          $('table#charge_sessions').off('click', 'tr')
+          $('table#charge_sessions').on('click', 'tr', function () {
+            showChangeChargeSessionModal(dt.row(this).data())
+          })
+        } else {
+          $('table#charge_sessions').removeClass('table-hover-warning')
+          $('table#charge_sessions').addClass('table-hover-success')
+          // $('table#charge_sessions').css('cursor', 'default')
+          $('table#charge_sessions').off('click', 'tr')
+          $('table#charge_sessions').on('click', 'tr', (ev) => {
+            // Only if highlighted
+            if ($('table#charge_sessions').hasClass('table-hover-success')) {
+              showGraph(dt.row(this).data())
+            }
+          })
+        }
+        dt.rows().invalidate().draw()
+      })
+      changeChargeSessionModal = $('#changeChargeSessionModal').modal({
+        backdrop: 'static',
+        keyboard: false,
+        show: false
+      })
+      askPasswordModal = $('#askPasswordModal').modal({
+        backdrop: 'static',
+        keyboard: false,
+        show: false
+      })
+      showGraphModal = $('#showGraphModal').modal({
+        backdrop: 'static',
+        keyboard: false,
+        show: false
+      })
+      $('#changeChargeSessionModal').on('shown.bs.modal', function (e) {
+        $('select#ccsmRfidToken').focus()
+      })
+      $('button#change-chargesession-modal-footer-cancel').on("click", function(e) {
+        changeChargeSessionModal.modal('hide')
+        e.preventDefault()
+      })
+      $('button#change-chargesession-modal-footer-saveaction').on("click", function(e) {
+        // Validate
+        if (!isChargeSessionModalValid()) {
+          autoHideNotify('warning','top-left', 'Niet valide', 'Laadsessiewijziging niet valide.')
+          return
+        }
+        // Ask password
+        changeChargeSessionModal.modal('hide')
+        askPasswordFor = APF_CHANGE_SESSION
+        askPasswordModal.modal('show')
+        e.preventDefault()
+      })
+      $('button#deleteOdometerValueButton').on("click", function(e) {
+        $('#ccsmOdometer')[0].value = ''
+      })
+      $("#ccsmRfidToken, #ccsmStarttimeDate, #ccsmStarttimeTime, #ccsmTrigger, #ccsmStartValue, #ccsmOdometer, #ccsmEndtimeDate, #ccsmEndtimeTime, #ccsmEndValue, #ccsmTariff").on('change select changeTime', function(e) {
+        // Anything changed, and all valid?
+        let valid = isChargeSessionModalValid()
+        let changed = isChargeSessionModalChanged()
+        $('button#change-chargesession-modal-footer-saveaction').attr("disabled", !valid || !changed)
+      })
+      $("oppleo-edit-str#ccsmStartValue, oppleo-edit-str#ccsmEndValue, oppleo-edit-str#ccsmTariff").on('change', function(e) {
+        // e.detail.value
+        if (typeof oParseFloat($('#ccsmEndValue')[0].$input.value) == 'number' && typeof oParseFloat($('#ccsmStartValue')[0].$input.value) == 'number') {
+          $('span#ccsmTotalEnergy').html(Math.round((oParseFloat($('#ccsmEndValue')[0].$input.value) - oParseFloat($('#ccsmStartValue')[0].$input.value)) * 10) /10)
+        } else {
+          $('span#ccsmTotalEnergy').html( '-' )
+        }
+        if (typeof oParseFloat($('#ccsmTotalEnergy').text()) == 'number' && typeof oParseFloat($('#ccsmTariff')[0].$input.value) == 'number') {
+          $('span#ccsmPrice').html((Math.round((oParseFloat($('#ccsmTotalEnergy').text()) * oParseFloat($('#ccsmTariff')[0].$input.value)) * 100) /100).toFixed(2).toString().replace('.', ','))
+        } else {
+          $('span#ccsmPrice').html( '-' )
+        }     
+      })
+      $('button#ask-password-modal-footer-cancel').on("click", function(e) {
+        askPasswordModal.modal('hide')
+        switch (askPasswordFor) {
+          case APF_CHANGE_SESSION:
+            changeChargeSessionModal.modal('show')
+            break
+          case APF_STOP_SESSION:
+            break
+          case APF_STOP_SESSION:
+            break
+        }
+        e.preventDefault()
+      })
+      $('button#askPasswordModalCloseButton').on("click", function(e) {
+        switch (askPasswordFor) {
+          case APF_CHANGE_SESSION:
+            changeChargeSessionModal.modal('show')
+            break
+          case APF_STOP_SESSION:
+            break
+          case APF_STOP_SESSION:
+            break
+        }
+        e.preventDefault()
+      })
+
+      $("button[id^=show_]").click(function() {
+        id = $(this).attr('id').split("show_").pop()
+        $('input[id='+id).attr(
+            'type', 
+            ( $('input[id='+id).attr('type') === "password" ? 'text' : 'password')
+        )
+        $(this).find('i').toggleClass('fa-eye')     // far fa-eye
+        $(this).find('i').toggleClass('fa-eye-slash') // far fa-eye-slash
+      })
+
+      $('button#ask-password-modal-footer-saveaction').on("click", function(e) {
+        switch (askPasswordFor) {
+          case APF_CHANGE_SESSION:
+            // Add password to charge session and submit
+            updateChargeSession( {...chargeSessionModalData(), ...{'password': $('input#password').val()}} )
+            break
+          case APF_STOP_SESSION:
+            break
+        }
+        e.preventDefault()
+      })
+
+      $('button#ask-password-modal-footer-passkey').on("click", (e) => {
+        let sessionId = $('span#ccsmChargeSessionId').text()
+
+        PASSKEY_ACTION.updateChargeSession.url = PASSKEY_ACTION.updateChargeSession.url_template.replace("[[PARAM1]]", sessionId)
+        PASSKEY_ACTION.updateChargeSession.data = JSON.stringify( chargeSessionModalData() )
+        
+        getWebauthnAuthenticationOptions('{{ csrf_token() }}', PASSKEY_ACTION.updateChargeSession, '{{ current_user.username }}')
+        e.preventDefault()
+      })
+      
+
+      $('table#charge_sessions').addClass('table-hover-success')
+      $('table#charge_sessions').css('cursor', 'pointer')
+      $('table#charge_sessions').on('click', 'tr', function () {
+        // Only if highlighted
+        if ($('table#charge_sessions').hasClass('table-hover-success')) {
+          showGraph(dt.row(this).data())
+        }
+      })
+      $('button#show-graph-modal-footer-closeaction').on("click", function(e) {
+        showGraphModal.modal('hide')
+        e.preventDefault()
+      })
+      // Close the hover tooltip on closed modal
+      $('#showGraphModal').on('hidden.bs.modal', function () {
+        $("#graph_tooltip").hide()
+      })
+    })
+
+    </script>
+
+{% endblock %}
+{% block content %}
+
+<div class="wrapper" id="{{ var1 }}">
+  <div class="container-fluid">
+
+    <!-- Page-Title -->
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="page-title-box">
+                <h4 class="page-title">Laad transacties</h4>
+            </div>
+        </div>
+    </div>
+    <!-- end page title end breadcrumb -->
+
+    <div class="row">
+      <div class="col-12">
+        <div class="card-box table-responsive">
+          <div id="showEnableSessionEdit" class="d-none" style="position: absolute; top: 20px; right: 85px; z-index: 1000;"
+            data-toggle="tooltip"
+            data-placement="bottom" 
+            data-html="true" 
+            title="<em>Klik om edit-mode in te schakelen</em>"
+            >
+            <input type="checkbox" 
+              name="enableSessionEdit"
+              id="enableSessionEdit"
+              data-toggle="toggle"
+              data-on="<i class='fas fa-lock-open'></i>"
+              data-off="<i class='fas fa-lock'></i>"
+              data-onstyle="warning"
+              data-offstyle="secondary"
+              data-size="sm"
+              data-height="20"
+              data-width="50"
+              data-placement="bottom" 
+              data-html="true"
+              title="Toon bewerkingsknoppen"
+              />
+          </div>
+
+          <table id="charge_sessions" class="table table-bordered" cellpadding="0" cellspacing="0" style="font-size: 10px;">
+            <thead style="background-color: #3bafda; color: white; border-color: #3bafda;">
+              <tr style="padding-top: 50%;">
+                <th class="pl-0 pr-0 text-center">Transactie</th>
+                <th class="text-center">Laadpas</th>
+                <th class="text-center text-nowrap">Starttijd</th>
+                <th class="pl-0 pr-0 text-center">Trigger</th>
+                <th class="pl-0 pr-0 text-center">Startmeting</th>
+                <th class="pl-0 pr-0 text-center">km stand</th>
+                <th class="text-center text-nowrap">Eindtijd</th>
+                <th class="pl-0 pr-0 text-center">Eindmeting</th>
+                <th class="pl-0 pr-0 text-center">Laadpunt</th>
+                <th class="pl-0 pr-0 text-center">Tarief</th>
+                <th class="pl-0 pr-0 text-center">Verbruik</th>
+                <th class="pl-0 pr-0 text-center">Prijs</th>
+                <th class="pl-0 pr-0 text-center" style="width: 35.5px;"><i class="far fa-hand-point-up"></i></th>
+              </tr>
+            </thead style="background-color: #3bafda; color: white; font-size: 14pt; font-weight: bold; border-color: #3bafda;">
+            <tbody>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div> <!-- end row -->
+
+  </div>
+</div>
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="changeChargeSessionModal" tabindex="-1" role="dialog" aria-labelledby="changeChargeSessionModalLabel" aria-hidden="true" data-backdrop="static">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="changeChargeSessionModalLabel">Wijzig laadsessie</h3>
+        <button type="button" class="close-x" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true"><i class="fas fa-times"></i></span>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <div class="col-lg-12">
+
+          <table class="w-100 text-center">
+            <tr class="">
+              <td class="bg-primary text-white pl-5 pr-5" colspan="4" style="font-size: 1.3rem;">Laadsessie <span id="ccsmChargeSessionId" class="font-weight: bold;"></span></td>
+            </tr>
+
+            <tr class="">
+              <td class="text-right pr-5" style="width: 35%;">Laadpas</td>
+              <td class="" colspan="3">
+                <oppleo-edit-select 
+                  id="ccsmRfidToken"
+                  options='[]'
+                  placeholder="Maak een keuze..."                                
+                  info="Kies een laadpas voor deze laadsessie"
+                  unlock=true
+                />
+              </td>
+            </tr>
+
+            <tr class="">
+              <td class="text-right pr-5">Starttijd</td>
+              <td>
+                <div class="input-daterange input-group date-picker">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text bg-secondary border border-secondary text-muted b-0">
+                      <i class="far fa-calendar-alt"></i>
+                    </span>
+                  </div>
+                  <input type="text" class="form-control form-control-sm" name="ccsmStarttimeDate" id="ccsmStarttimeDate"
+                         value=""/>
+                </div>                
+              </td>
+              <td class="" colspan="2">
+                <oppleo-edit-time 
+                  id="ccsmStarttimeTime"
+                  options=''
+                  unlock=true
+                />
+              </td>
+            </tr>
+
+            <tr class="">
+              <td class="text-right pr-5">Trigger</td>
+              <td class="text-left" colspan="3">
+                <oppleo-edit-select 
+                  id="ccsmTrigger"
+                  options='[]'
+                  placeholder="Maak een keuze..."                                
+                  info="Trigger methode. WEB is via de web interface, RFID via aanbieden van de rfid kaart op het laadpunt, AUTO is automatisch via auto-sessie."
+                  unlock=true
+                />
+              </td>
+            </tr>
+
+            <tr class="">
+              <td class="text-right pr-5">Startmeting</td>
+              <td class="" colspan="3">
+                <oppleo-edit-str 
+                  id="ccsmStartValue"
+                  value=""
+                  suffix="kWh"
+                  validation="^[0-9]*[,|.]?[0-9]?$"
+                  info="Startmeting in kilowattuur, nauwkeurigheid 1 decimaal."
+                  unlock=true
+                />
+              </td>
+            </tr>
+
+            <tr class="">
+              <td class="text-right pr-5">Kilometerstand</td>
+              <td class="" colspan="2">
+                <oppleo-edit-str 
+                  id="ccsmOdometer"
+                  value=""
+                  suffix="km"
+                  style="width: calc(100% - 42px);"
+                  validation="^[0-9]*$"
+                  info="Kilometerstand bij aanvang van de laadsessie, afgerond op hele kilometers."
+                  unlock=true
+                />
+              </td>
+              <td class="ml-0 mr-0 pl-0 pr-0" style="width: 32px;">
+                <span id="input_container" class="input-group-append" style="width: 32px;">
+                  <button
+                    type="button" 
+                    id="deleteOdometerValueButton"
+                    class="btn btn-sm pl-2 pr-2 waves-effect waves-light btn-outline-primary"
+                    data-toggle="tooltip" 
+                    data-placement="bottom" 
+                    data-html="true" 
+                    title="<em>Verwijder kilometerstand</em>"
+                    >
+                    <i class="far fa-trash-alt"></i>
+                  </button>
+                </span>
+              </td>
+            </tr>
+
+            <tr id="chargeSessionModalEndTimeClosedSession" class="">
+              <td class="text-right pr-5">Eindtijd</td>
+              <td>
+                <div class="input-daterange input-group date-picker">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text bg-secondary border border-secondary text-muted b-0">
+                      <i class="far fa-calendar-alt"></i>
+                    </span>
+                  </div>
+                  <input type="text" class="form-control form-control-sm" name="ccsmEndtimeDate" id="ccsmEndtimeDate"
+                         value=""/>
+                </div>                
+              </td>
+              <td class="" colspan="2">
+                <oppleo-edit-time 
+                  id="ccsmEndtimeTime"
+                  options=''
+                  unlock=true
+                />
+              </td>
+            </tr>
+
+            <tr id="chargeSessionModalEndTimeOpenSession" class="">
+              <td class="text-right pr-5">Eindtijd</td>
+              <td class="text-left font-italic" colspan="2">
+                <div class="input-group">
+                  <span class="input-group-prepend">
+                    <span 
+                      class="input-group-text bg-dark b-1 text-secondary"
+                      id="info_text"
+                      data-toggle="tooltip" 
+                      data-placement="bottom" 
+                      data-html="true" 
+                      title="Sluit laadsessie eerst af om de eindtijd te kunnen wijzigen"
+                      >
+                      <i class="fas fa-info-circle"></i>
+                    </span>
+                  </span>
+                  <span id="input_container" class="input-group-append" style="width: calc(100% - 42px);">
+                    <input 
+                      class="form-control form-control-sm font-italic" 
+                      type="text"
+                      readonly="readonly"
+                      style="text-align: left; width: 100%;"
+                      placeholder=""
+                      value="Laadsessie open"
+                    />
+                  </span>
+                </div>          
+              </td>
+            </tr>
+
+            <tr class="">
+              <td class="text-right pr-5">Eindmeting</td>
+              <td class="" colspan="3">
+                <oppleo-edit-str 
+                  id="ccsmEndValue"
+                  value=""
+                  suffix="kWh"
+                  validation="^[0-9]*[,|.]?[0-9]?$"
+                  info="Eindmeting in kilowattuur, nauwkeurigheid 1 decimaal."
+                  unlock=true
+                />
+              </td>
+            </tr>
+
+            <tr class="">
+              <td class="text-right pr-5">Laadpunt</td>
+              <td class="text-left font-italic" colspan="2">
+                <div class="input-group">
+                  <span class="input-group-prepend">
+                    <span 
+                      class="input-group-text bg-dark b-1 text-secondary"
+                      id="info_text"
+                      data-toggle="tooltip" 
+                      data-placement="bottom" 
+                      data-html="true" 
+                      title="Deze laadsessie is gelinkt aan dit laadpunt. Wijzig het ID van dit laadpunt in de instellingen om de naam van het laadpunt van deze laadsessie te wijzigen."
+                      >
+                      <i class="fas fa-info-circle"></i>
+                    </span>
+                  </span>
+                  <span id="input_container" class="input-group-append" style="width: calc(100% - 42px);">
+                    <input 
+                      class="form-control form-control-sm font-italic"
+                      id="ccsmCharger"
+                      type="text"
+                      readonly="readonly"
+                      style="text-align: left; width: 100%;"
+                      placeholder=""
+                      value=""
+                    />
+                  </span>
+                </div>          
+              </td>
+            </tr>
+            
+            <tr class="">
+              <td class="text-right pr-5">Tarief</td>
+              <td class="" colspan="3">
+                <oppleo-edit-str 
+                  id="ccsmTariff"
+                  value=""
+                  prefix="&euro; "
+                  validation="^(?:0|[1-9][0-9]*)(?:[,|.][0-9]{1,2})?$"
+                  info="Tarief per kWh [&euro;], nauwkeurigheid 2 decimalen."
+                  unlock=true
+                />
+              </td>
+            </tr>
+
+            <tr class="">
+              <td class="text-primary text-right pr-5">Verbruik</td>
+              <td class="text-right pr-5 text-white" colspan="3">
+                <span id="ccsmTotalEnergy"></span>kWh
+              </td>
+            </tr>
+
+            <tr class="">
+              <td class="text-primary text-right pr-5">Prijs</td>
+              <td class="text-right text-warning pr-5" colspan="3">
+                &euro; <span id="ccsmPrice"></span>
+              </td>
+            </tr>
+          </table>
+
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary waves-effect waves-light mr-2" id="change-chargesession-modal-footer-cancel">Annuleren</button>
+        <button type="button" class="btn btn-primary waves-effect waves-light" id="change-chargesession-modal-footer-saveaction" disabled="true"> Wijziging opslaan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="askPasswordModal" tabindex="-1" role="dialog" aria-labelledby="askPasswordModalLabel" aria-hidden="true" data-backdrop="static">
+  <div class="modal-dialog modal-password" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h3 class="modal-title" id="askPasswordModalLabel">Autorisatie</h3>
+        <button type="button" class="close-x bg-warning" data-dismiss="modal" aria-label="Close" id="askPasswordModalCloseButton">
+          <span aria-hidden="true"><i class="fas fa-times"></i></span>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <div class="col-lg-12">
+
+          <div class="text-center text-warning pb-5">
+            <div style="font-size: 1.3rem;">Voer het wachtwoord van {{ current_user.username }} in om laadsessie <span id="apmChargeSessionId" class="font-weight: bold;"></span> te wijzigen</div>
+          </div>
+
+          <div>
+            <div class="input-group">
+              <div class="text-right pr-5">Wachtwoord</div>
+              <span class="input-group-prepend">
+                <span class="input-group-text bg-secondary border border-secondary text-muted">
+                    <i class="mdi mdi-radar"></i>
+                </span>
+              </span>
+              <input class="form-control" id="password" name="password" type="password" required="" placeholder="Password" value="">
+              <span class="input-group-append">
+                <button 
+                    id="show_password"
+                    type="button" 
+                    class="btn waves-effect waves-light btn-primary" 
+                    data-toggle="tooltip" 
+                    data-placement="bottom" 
+                    data-html="true" 
+                    title="<em>Klik om de tekst zichtbaar te maken</em>"
+                    >
+                    <i class="far fa-eye"></i>
+                </button>
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success btn-custom waves-effect waves-light" id="ask-password-modal-footer-passkey" ><i class="fab fa-keycdn"></i></button>
+        <button type="button" class="btn btn-secondary waves-effect waves-light mr-2" id="ask-password-modal-footer-cancel">Annuleren</button>
+        <button type="button" class="btn btn-warning waves-effect waves-light" id="ask-password-modal-footer-saveaction"> Autoriseren</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="showGraphModal" tabindex="-1" role="dialog" aria-labelledby="showGraphModalLabel" aria-hidden="true" data-backdrop="static">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary">
+        <h3 class="modal-title" id="showGraphModalLabel">Laadsessieverloop <span id="csgChargeSessionIdTitle"></span></h3>
+        <button type="button" class="close-x" data-dismiss="modal" aria-label="Close" id="showGraphModalCloseButton">
+          <span aria-hidden="true"><i class="fas fa-times"></i></span>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <div class="col-lg-12">
+
+          <div style="position: relative; display: flex; min-height: 3.4em;">
+            <div class="text-center pb-3 charge-session-summary">
+              <span>Transactie</span><span id="csgChargeSessionId"></span><span>met laadpas</span><span id="csgRfid"></span><span>op laadpunt</span><span id="csgChargerName"></span><span>gestart op</span><span id="csgFrom"></span><span>lopend tot</span><span id="csgUntill"></span><span>gedurende</span><span id="csgDuration"></span><span>voor een tarief van</span><span id="csgTariff"></span><span>/kWh met een totaalverbruik van</span><span id="csgTotalusage"></span><span>en een totaalprijs van</span><span id="csgPrice"></span>.
+            </div>
+
+            <div class="legend" style="width: 130px; height: 3.2em; pointer-events: none; float: right;">
+              <svg class="legendLayer" style="width:inherit;height:inherit;">
+                <rect class="background" width="100%" height="100%"></rect>
+                <defs>
+                  <symbol id="line" fill="none" viewBox="-5 -5 25 25">
+                    <polyline points="0,15 5,5 10,10 15,0"></polyline>
+                  </symbol>
+                  <symbol id="area" stroke-width="1" viewBox="-5 -5 25 25">
+                    <polyline points="0,15 5,5 10,10 15,0, 15,15, 0,15"></polyline>
+                  </symbol>
+                  <symbol id="bars" stroke-width="1" viewBox="-5 -5 25 25">
+                    <polyline points="1.5,15.5 1.5,12.5, 4.5,12.5 4.5,15.5 6.5,15.5 6.5,3.5, 9.5,3.5 9.5,15.5 11.5,15.5 11.5,7.5 14.5,7.5 14.5,15.5 1.5,15.5"></polyline>
+                  </symbol>
+                  <symbol id="circle" viewBox="-5 -5 25 25">
+                    <circle cx="0" cy="15" r="2.5"></circle>
+                    <circle cx="5" cy="5" r="2.5"></circle>
+                    <circle cx="10" cy="10" r="2.5"></circle>
+                    <circle cx="15" cy="0" r="2.5"></circle>
+                  </symbol>
+                  <symbol id="rectangle" viewBox="-5 -5 25 25">
+                    <rect x="-2.1" y="12.9" width="4.2" height="4.2"></rect>
+                    <rect x="2.9" y="2.9" width="4.2" height="4.2"></rect>
+                    <rect x="7.9" y="7.9" width="4.2" height="4.2"></rect>
+                    <rect x="12.9" y="-2.1" width="4.2" height="4.2"></rect>
+                  </symbol>
+                  <symbol id="diamond" viewBox="-5 -5 25 25">
+                    <path d="M-3,15 L0,12 L3,15, L0,18 Z"></path>
+                    <path d="M2,5 L5,2 L8,5, L5,8 Z"></path>
+                    <path d="M7,10 L10,7 L13,10, L10,13 Z"></path>
+                    <path d="M12,0 L15,-3 L18,0, L15,3 Z"></path>
+                  </symbol>
+                  <symbol id="cross" fill="none" viewBox="-5 -5 25 25">
+                    <path d="M-2.1,12.9 L2.1,17.1, M2.1,12.9 L-2.1,17.1 Z"></path>
+                    <path d="M2.9,2.9 L7.1,7.1 M7.1,2.9 L2.9,7.1 Z"></path>
+                    <path d="M7.9,7.9 L12.1,12.1 M12.1,7.9 L7.9,12.1 Z"></path>
+                    <path d="M12.9,-2.1 L17.1,2.1 M17.1,-2.1 L12.9,2.1 Z"></path>
+                  </symbol>
+                  <symbol id="plus" fill="none" viewBox="-5 -5 25 25">
+                    <path d="M0,12 L0,18, M-3,15 L3,15 Z"></path>
+                    <path d="M5,2 L5,8 M2,5 L8,5 Z"></path>
+                    <path d="M10,7 L10,13 M7,10 L13,10 Z"></path>
+                    <path d="M15,-3 L15,3 M12,0 L18,0 Z"></path>
+                  </symbol>
+                </defs>
+                <g>
+                  <use xlink:href="#area" class="legendIcon" x="3px" y="0em" fill="#00b19d" width="1.5em" height="1.5em"></use>
+                  <text x="3px" y="0em" text-anchor="start">
+                    <tspan dx="2em" dy="1.2em">Stroom [A]</tspan>
+                  </text>
+                </g>
+                <g>
+                  <use xlink:href="#line" class="legendIcon" x="3px" y="1.5em" stroke="#ffaa00" stroke-width="1" width="1.5em" height="1.5em"></use>
+                  <text x="3px" y="1.5em" text-anchor="start">
+                    <tspan dx="2em" dy="1.2em">Energie [kWh]</tspan>
+                  </text>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <div>
+            <div class="portlet"><!-- /primary heading -->
+                <div id="portlet 1" class="panel-collapse collapse show">
+                    <div class="portlet-body">
+                        <div id="modal_flotgraph" style="height: 320px;" class="flot-chart"></div>
+                    </div>
+                </div>
+            </div>
+      
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="show-graph-modal-footer-closeaction"> Sluiten</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="graph_tooltip"></div>
+
+{% endblock %}

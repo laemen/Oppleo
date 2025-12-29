@@ -1,0 +1,1332 @@
+{% extends "template.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block jquery %} 
+  {% include 'includes/include.jquery-3.3.1.html' %}
+{% endblock %} 
+{% block head %}
+  {{ super() }}
+
+  <!-- Circliful -->
+  <link href="{{ url_for('static', filename='plugins/jquery-circliful/css/jquery.circliful.css') }}" rel="stylesheet" type="text/css" />
+  <script src="{{ url_for('static', filename='plugins/jquery-circliful/js/jquery.circliful.js') }}"></script>
+  <script src="{{ url_for('static', filename='plugins/jquery-circliful/js/jquery.circliful.min.js') }}"></script>
+  
+
+  <style>
+  span.badge-primary {
+    background-color: #0a7aa3; /*#222; */
+    animation-name: chargingColor;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+  }
+  @keyframes chargingColor {
+    0% {
+      background-color: #0a7aa3; /* #323b44;  #222; */
+    }
+    50% {
+      background-color: #3bafda; /* #4285f4; */
+    }
+    100 {
+      background-color: #0a7aa3; /* #222; */
+    }
+  }
+  span.badge-danger {
+    background-color: #a31c2a; 
+    animation-name: errorColor;
+    animation-duration: 0.5s;
+    animation-iteration-count: infinite;
+  }
+  @keyframes errorColor {
+    0% {
+      background-color: #a31c2a;
+    }
+    50% {
+      background-color: #dc3545;
+    }
+    100 {
+      background-color: #a31c2a;
+    }
+  }
+  .badge-danger, .badge-warning, .badge-primary, .badge-success, .badge-secondary, .badge-info {
+    cursor: help;
+  }
+
+  .progressbar-footer {
+    position: absolute;
+    width: 100%;
+    margin-top: 18px;
+    z-index: 1;
+    font-size: 12px;
+  }
+  .progressbar-footer-label {
+    position: relative;
+    float: left;
+    left: 5px;
+  }
+  .progressbar-footer-update {
+    position: flex;
+    font-size: smaller;
+    float: right;
+    margin-right: 30px;
+  }
+
+  .progressbar-marker {
+    position: absolute;
+    margin-top: -20px;
+    z-index: 1;
+    font-size: 12px;
+  }
+  .progressbar-marker-line {
+    background: #fff;
+    height: 22px;
+    margin-top: 12px;
+    width: 1px;
+    margin-left: 0px;
+  }
+  .progressbar-marker-label {
+    position: relative;
+    margin-left: 2px;   
+  }
+  .vehicle-img {
+      position: absolute;
+    }
+  @media (min-width: 400px) {
+    .vehicle-img {
+      top: -85px;
+      right: 130px;
+      max-width: 260px;
+      max-height: 180px;
+    }
+  }
+  /* iPhone reports 375 screen width, in portrait or landscape */
+  @media (max-width: 399px) {
+    .vehicle-img {
+      top: -25px;
+      right: 70px;
+      max-width: 140px;
+      max-height: 90px;
+    }
+  }
+  </style>
+
+  <script>
+    EVSE_STATE_UNKNOWN    = 0  // Initial
+    EVSE_STATE_INACTIVE   = 1  // SmartEVSE State A: LED ON dimmed. Contactor OFF. Inactive
+    EVSE_STATE_CONNECTED  = 2  // SmartEVSE State B: LED ON full brightness, Car connected
+    EVSE_STATE_CHARGING   = 3  // SmartEVSE State C: charging (pulsing)
+    EVSE_STATE_ERROR      = 4  // 
+    function timestamp() {
+      d = new Date();
+      return (d.getFullYear() + "-" + 
+             (d.getMonth()<10?'0':'') + (d.getMonth()+1) + "-" + 
+             (d.getDate()<10?'0':'') + d.getDate() + '.' + 
+             (d.getHours()<10?'0':'') + d.getHours() + ":" + 
+             (d.getMinutes()<10?'0':'') + d.getMinutes() + "." + 
+             (d.getSeconds()<10?'0':'') + d.getSeconds() + '.' + 
+             (d.getMilliseconds()<100?'0':'') + (d.getMilliseconds()<10?'0':'') + d.getMilliseconds()
+      )
+    }
+    gaugeOneStatus = ''
+    gaugeOneSession = ''
+    gaugeOnePower = ''
+
+    function formatSizePower( f ) {
+      f = parseFloat(f)
+      u = 'W'
+      if (f > 1000) {
+        f = Math.round(f /100) /10
+        u = 'kW'
+      }
+      return f + u
+    }
+
+    function updateGauges( data ) {
+      gaugeOnePower = (Math.round((parseFloat(data.p_l1)+parseFloat(data.p_l2)+parseFloat(data.p_l3))*10)/10)
+      gaugeOnePower = formatSizePower(gaugeOnePower)
+      updateGauger( 'gauger_1',       // id
+                    gaugeOneStatus + (gaugeOneStatus=='Geen sessie'||gaugeOneStatus=='Wachten'?'':' ' + gaugeOnePower),   // title
+                    gaugeOneSession,  // subtitle
+                    '0km/u',          // scale min
+                    '100km/u',        // scale max
+                    Math.round((parseFloat(data.p_l1)+parseFloat(data.p_l3)+parseFloat(data.p_l3))/factor_Whkm),  // percentage
+                    Math.round((parseFloat(data.p_l1)+parseFloat(data.p_l3)+parseFloat(data.p_l3))/factor_Whkm),  // text 
+                    'km/u',           // dataTitle
+                    Math.round((data.kw_total*10)/10).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + ' kWh',   // inset value
+                    'Totaal',          // inset text
+                    '±' + Math.round((data.kw_total*1000)/factor_Whkm).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + ' km',   // Tooltip
+                    '#ffaa00',        // fgColor    orange #ffaa00
+                    '#505A66',        // bgColor
+                    '#36404a',        // fillColor  blue #3bafda
+                    '#3bafda'         // insetColor
+                  )
+      // Amps L1
+      updateGauger( 'gauger_2',       // id
+                    'L1',             // title
+                    '&nbsp;',         // subtitle
+                    '0A',             // scale min
+                    '25A',            // scale max
+                    ((data.a_l1/25)*100),         // percentage
+                    data.a_l1 + ' A', // text 
+                    Math.round(data.v_l1) + 'V',  // dataTitle
+                    Math.round(data.p_l1).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + ' W',   // inset value
+                    'Current',        // inset text
+                    Math.round(data.p_l1/factor_Whkm) + ' km/u',  // Tooltip
+                    '#3bafda',        // fgColor
+                    '#505A66',        // bgColor
+                    '#36404a',        // fillColor
+                    '#98a6ad'         // insetColor
+                  )
+      updateGauger( 'gauger_3',       // id
+                    'L2',             // title
+                    '&nbsp;',         // subtitle
+                    '0A',             // scale min
+                    '25A',            // scale max
+                    ((data.a_l2/25)*100),         // percentage
+                    data.a_l2 + ' A', // text 
+                    Math.round(data.v_l2) + 'V',  // dataTitle
+                    Math.round(data.p_l2).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + ' W',   // inset value
+                    'Current',        // inset text
+                    Math.round(data.p_l2/factor_Whkm) + ' km/u',  // Tooltip
+                    '#3bafda',        // fgColor
+                    '#505A66',        // bgColor
+                    '#36404a',        // fillColor
+                    '#98a6ad'         // insetColor
+                  )
+      updateGauger( 'gauger_4',       // id
+                    'L3',             // title
+                    '&nbsp;',         // subtitle
+                    '0A',             // scale min
+                    '25A',            // scale max
+                    ((data.a_l3/25)*100),         // percentage
+                    data.a_l3 + ' A', // text 
+                    Math.round(data.v_l3) + 'V',  // dataTitle
+                    Math.round(data.p_l3).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + ' W',   // inset value
+                    'Current',        // inset text
+                    Math.round(data.p_l3/factor_Whkm) + ' km/u',  // Tooltip
+                    '#3bafda',        // fgColor
+                    '#505A66',        // bgColor
+                    '#36404a',        // fillColor
+                    '#98a6ad'         // insetColor
+                  )
+    }
+
+    function getUsageData( n ) {
+      console.log(timestamp() + ' getUsageData()')
+      $.ajax({
+        type		  : 'GET',
+        url			  : (n == undefined ? '/usage_data' : '/usage_data/' + n + '/'),
+        dataType	: 'json',
+        encode		: true,
+        headers   : { 'ignore-login-next': 'true' } // prevent this call to be used in login-next
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log('GET usage_data' + JSON.stringify(data))
+        if (Array.isArray(data) && data.length > 0) {
+          updateGauges( data[0] )
+        } else {
+          o0 = { 'a_l1': '0.0', 'a_l2': '0.0', 'a_l3': '0.0', 'created_at': '01/01/1970, 00:00:00', 'enery_device_id': 'UNKNOWN', 'hz': "0.0", 'kw_total': "0",'kwh_l1': "0", 'kwh_l2': "0", 'kwh_l3': "0", 'p_l1': "0", 'p_l2': "0", 'p_l3': "0",'v_l1': "0", 'v_l2': "0", 'v_l3': "0" }
+          updateGauges( o0 )
+        }
+      })
+      .fail(function(result) {
+        console.log('getUsageData() FAILED')
+        // log data to the console so we can see
+        console.log(result)
+      })
+      .always(function() {
+        // Remove spinner
+        $('.spinner').hide()
+      })
+    }
+
+    function updateGaugeTitle(id, title, subTitle) {
+      $('#' + id + '_title').html(title)
+      $('#' + id + '_subtitle').html(subTitle)
+    }
+    function updateGauger( id,            // The element id
+                           title,
+                           subTitle,
+                           scale_min,     // min scale (usually 0)
+                           scale_max,     // max scale, 25A for amps, 250V for volts etc. 
+                           percentage,    // The usage indicator, percentage 0-100 of min-max scale
+                           text,          // The text in the middle, usually the indicated amount (16A etc)
+                           dataTitle,     // The title below the text in the middle
+                           inset_value,   // Inset is the right top
+                           inset_text,    //
+                           inset_tooltip, //
+                           fgColor,       // Fills the data percentage
+                           bgColor,
+                           fillColor,     // Fills the halve completely
+                           insetColor     // Color of the inset value
+                          ) {
+      $('#' + id + '_inset').tooltip()
+      $('#' + id + '_circliful').circliful()
+
+      $('#' + id + '_title').html(title)
+      $('#' + id + '_subtitle').html(subTitle)
+
+      $('#' + id + '_scale_min').html(scale_min)
+      $('#' + id + '_scale_max').html(scale_max)
+      // inset
+      $('#' + id + '_inset').html(inset_value)
+      $('#' + id + '_insettitle').html(inset_text)
+      $('#' + id + '_inset').css('color', insetColor)
+
+      // Update the tooltip
+      $('#' + id + '_inset').attr('data-original-title', inset_tooltip)
+
+      // Change
+      $('#' + id + '_circliful')
+        .empty()
+        .removeData()
+        .attr('data-percent', Math.round(percentage))
+        .attr('data-text', text)
+        .attr('data-fgcolor', fgColor)
+        .attr('data-fill', fillColor)
+        .attr('data-bgcolor', bgColor)
+        .attr('data-info', dataTitle)
+        .circliful()
+      $('#' + id + '_inset').toggleClass('invisible', false);    
+      $('#' + id + '_insettitle').toggleClass('invisible', false);    
+    }
+
+    function startChargeSession( result ) {
+      console.log('startChargeSession()')
+      $('div#statusReady').find('div').find('p').text(
+        chargeDetailStr(result.id, result.data)
+      )
+      $('div#statusCharging').find('div').find('p').text(
+        chargeDetailStr(result.id, result.data)
+      )
+    }
+
+    var activeChargeSession = undefined
+
+    function setActiveChargeSession( session ) {
+      activeChargeSession = session
+
+      if ({% if oppleoconfig.webChargeOnDashboard %}false{% else %}true{% endif %}) {
+        // No WebCarge on Dashboard
+        return
+      }
+
+      if ( session != undefined && 
+           session.hasOwnProperty("chargeSession") && 
+           session.chargeSession &&
+           session.hasOwnProperty("rfid") && (session.rfid != null && session.rfid != undefined ) && 
+           session.rfid.name ) { 
+        // Active charge session - show stop button, hide start button
+        // TODO
+        $('span#activeTokenText').text( session.rfid.name )
+        $('span#activeTokenSpan').toggleClass( 'd-none', false )
+        $('button#startChargeSession').toggleClass( 'd-none', true )
+        $('select#rfidToken').toggleClass( 'd-none', true )
+        $('button#stopChargeSession').toggleClass( 'd-none', false )
+      } else {
+        // No active charge session - show start button, hide stop button
+        // TODO
+        $('span#activeTokenText').text( '' )
+        $('span#activeTokenSpan').toggleClass( 'd-none', true )
+        $('button#startChargeSession').toggleClass( 'd-none', false )
+        $('select#rfidToken').toggleClass( 'd-none', false )
+        $('button#stopChargeSession').toggleClass( 'd-none', true )
+      }
+    }
+
+    function getChargeSessionStatus( ) {
+      console.log(timestamp() + ' getChargeSessionStatus()')
+      $.ajax({
+        type		  : 'GET',
+        url			  : '/active_charge_session/',
+        dataType	: 'json',
+        encode		: true,
+        headers   : { 'ignore-login-next': 'true' }
+      }) // using the done promise callback
+      .done(function(result) {
+        // log data to the console so we can see
+        console.log(result)
+
+        setActiveChargeSession( result )
+        switch(parseInt(result.status)) {
+          case 200:                   // Active charge session
+            error = false
+            on = true
+            updateEvseIndicator( result.evseEnabled, error, on )
+            updateOffPeakIndicator( result.offPeakEnabled, result.offPeak, result.offPeakAllowedOnce, error, on )
+            updateChargingIndicator( result.chargeSession, result.charging, error, on )
+            if (result.auth) {
+              updateTotalIndicator( result.data.total_energy, result.data.total_price, result.chargeSession, on )
+            } else {
+              // If not logged in, no charge session information is returned
+              updateTotalIndicator( undefined, undefined, result.chargeSession, on)
+            }
+            updateAuthIndicator( result.auth, error, on )
+            updateGaugeTitle('gauger_1', gaugeOneStatus + (gaugeOnePower != '0W' ? ' ' + gaugeOnePower : ''), gaugeOneSession)
+            break
+          case 404:                   // No charge session found (green)
+            error = false
+            on = true
+            updateEvseIndicator( result.evseEnabled, error, on )
+            updateOffPeakIndicator( result.offPeakEnabled, result.offPeak, result.offPeakAllowedOnce, error, on )
+            updateChargingIndicator( result.chargeSession, result.charging, error, on )
+            updateTotalIndicator( '', '', result.chargeSession, on )
+            updateAuthIndicator( result.auth, error, on )
+            break
+          case 500:    // Error (red)
+          default:
+            error = true
+            on = true
+            updateEvseIndicator( false, error, on )
+            updateOffPeakIndicator( false, false, false, error, on )
+            updateChargingIndicator( false, false, error, on )
+            updateTotalIndicator( '', '', false, on )
+            updateAuthIndicator( false, error, on )
+            break
+        }
+        $('[data-toggle=tooltip]').tooltip({ 
+          boundary: 'window', 
+          trigger : 'hover'   // Allow button clicks
+        })
+      })
+      .fail(function(result) {
+        console.log('getChargeSessionStatus() FAILED')
+        // log data to the console so we can see
+        console.log(result)
+        // If not logged in, no session data. Hide all
+        error = true
+        on = true
+        updateEvseIndicator( false, error, on )
+        updateOffPeakIndicator( false, false, false, error, on )
+        updateChargingIndicator( false, false, error, on )
+        updateTotalIndicator( '', '', false, on )
+        updateAuthIndicator( false, error, on )
+      })
+      .always(function() {
+        // Remove spinner?
+      })
+    }
+    function wakeupVehicle( ) {
+      console.log(timestamp() + ' wakeupVehicle()')
+      $('.spinner').show()
+      $.ajax({
+        type		  : 'GET',
+        url			  : '/wakeup_vehicle/',
+        dataType	: 'json',
+        encode		: true,
+        headers   : { 'ignore-login-next': 'true' }
+      }) // using the done promise callback
+      .done(function(result) {
+        // log data to the console so we can see
+        console.log(result)
+        switch(parseInt(result.status)) {
+          case 200:                   // OK - Success - wakeup done
+            updateVehicleConnectedIdicator(VEHICLE_STATE_UNKNOWN)
+            break
+          case 202:                   // Accepted - Success - wakeup requested
+            updateVehicleConnectedIdicator(VEHICLE_STATE_WAKINGUP)
+            break
+          case 400:                   // Bad request
+          case 404:                   // Not found
+          case 424:                   // Failed
+          case 500:                   // Error (red?)
+          default:
+            autoHideNotify('warning','top-left', 'Onbekend', 'Onbekende fout ('+result.status+'). Voertuig niet gewekt.')
+            break
+        }
+      })
+      .fail(function(result) {
+        console.log('wakeupVehicle() FAILED')
+        // log data to the console so we can see
+        console.log(result)
+        autoHideNotify('error','top-left', 'Connectie fout', 'Voertuig niet gewekt.')
+      })
+      .always(function() {
+        // Remove spinner
+        $('.spinner').hide()
+      })
+    }
+    function enableQuickStartButton( enable ) {
+      // Enable quickstart button when token selected, disable otherwise
+      $('button#startChargeSession').prop('disabled', !enable)
+    }
+
+    function drawProgresBarSection(color, striping, animation, level, min=0, max=0) {
+      let pEl = $('<div class="progress-bar '+color+' '+striping+' '+animation+'" role="progressbar" style="width: '+level+'%" aria-valuenow="'+level+'" aria-valuemin="'+min+'" aria-valuemax="'+max+'"></div>')
+      $('div#vehicleChargeStateProgress').append(pEl)
+    }
+    function drawProgresBarTitle(text) {
+      $('h4#vehicleChargeStateHeader').html(text)
+    }            
+    function drawProgresBarMarker(level, text='', color='') {
+      let lFlipAt = 91
+      let pEl = $('<div class="progressbar-marker" style=" '+(level>lFlipAt?'right':'left')+': calc('+(level>lFlipAt?'100% - (':'')+'10px + ('+level+' * ((100% - 20px)/100))'+(level>lFlipAt?')':'')+');">')
+      let pElLine = $('<div class="progressbar-marker-line '+color+'" style="float: '+(level>lFlipAt?'right':'left')+';"></div>')
+      let pElText = $('<div class="progressbar-marker-label" style="float: '+(level>lFlipAt?'left':'right')+';">'+text+'</div>')
+      pEl.append(pElLine)
+      pEl.append(pElText)
+      $('div#vehicleChargeStateProgress').append(pEl)
+    }
+    progressbarUpdateTimerRef = null
+    function progressbarUpdateTimer() {
+      const t = parseInt($('span#progressbarUpdateTimerTime').text())
+      if (!isNaN(t)) {
+        if (t>1) {
+          $('span#progressbarUpdateTimerTime').text(t-1)
+          progressbarUpdateTimerRef = setTimeout(progressbarUpdateTimer, 1000)
+        } else {
+          $('div#progressbarUpdateTimer').html('<i class="fas fa-spinner fa-spin"></i>')
+        }
+      }
+    }
+
+    function drawProgresBarFooter(label, update) {
+      if (progressbarUpdateTimerRef != null) {
+        clearTimeout(progressbarUpdateTimerRef)
+        progressbarUpdateTimerRef = null
+      }
+      let pEl = $('<div class="progressbar-footer" style="left: 1%">')
+      let pElLabel = $('<div class="progressbar-footer-label">'+label+'</div>')
+      pEl.append(pElLabel)
+      let pElUpdate = $('<div id="progressbarUpdateTimer" class="progressbar-footer-update text-secondary"><span id="progressbarUpdateTimerTime">'+update+'</span>s <i class="fas fa-stopwatch"></i></div>')
+      pEl.append(pElUpdate)
+      $('div#vehicleChargeStateProgress').append(pEl)
+      progressbarUpdateTimerRef = setTimeout(progressbarUpdateTimer, 1000)
+    }
+    function showVehicleChargeState() {
+      // Slide down if not visible yet
+      if ($('div#vehicleChargeState').hasClass( 'd-none')) {
+        $('div#vehicleChargeState').css( 'height', 0 )
+        $('div#vehicleChargeState').removeClass( 'd-none' )
+        $('div#vehicleChargeState').animate({
+          height: '+=118px',
+        })
+      }
+    }
+    function hideVehicleChargeState() {
+      // Slide up
+      if (!$('div#vehicleChargeState').hasClass( 'd-none')) {
+        $('div#vehicleChargeState').animate({
+          height: '-=95px',
+        },400,function() {
+          // Animation complete.
+          $('div#vehicleChargeState').addClass( 'd-none' )
+          $('div#vehicleChargeStateProgress div').remove()
+        })
+      }
+    }
+
+    function drawVehicleChargeState(vehicleName,
+                                    progressMin,
+                                    progressMax,
+                                    chargeRequested,
+                                    chargeCurrent,
+                                    chargingState,
+                                    chargeRate,
+                                    minutesToFullCharge,
+                                    chargeEnergyAdded,
+                                    chargeKmAdded,
+                                    currentBatteryRange,
+                                    chargeStart,
+                                    chargePortDoorOpen,
+                                    timestampMillis,
+                                    vehicleImg
+                                   ) {
+
+      // First, remove any existing progress bar
+      $('div#vehicleChargeStateProgress div').remove()
+
+      // Step 1: is there a part before the current charge?
+      drawProgresBarSection( ( chargingState == 'Charging' ? 'bg-primary' : 'bg-success' ),
+                             ( chargingState == 'Charging' ? 'progress-bar-striped' : '' ),
+                             ( chargingState == 'Charging' ? 'progress-bar-animated' : '' ),
+                             chargeStart
+                            )
+      // Step 2: Part of current charge
+      drawProgresBarSection( ( chargingState == 'Charging' ? 'bg-info' : 'bg-success' ),
+                             'progress-bar-striped',
+                             ( chargingState == 'Charging' ? 'progress-bar-animated' : '' ),
+                             (chargeCurrent-chargeStart)
+                            )
+      // Step 3: paint remaining to progressMax
+      drawProgresBarSection( 'bg-secondary', '', '', (progressMax-chargeCurrent) )
+      // Step 4: Now where does the white requested level marker go?
+      drawProgresBarMarker(chargeRequested, chargeRequested+"%")
+      // Step 5: Draw title
+      drawProgresBarTitle('<i class="fas fa-car"></i> '+vehicleName)
+      // Step 6: Draw footer
+      d = new Date(timestampMillis)
+      let update = ( (weekday[d.getDay() %7]).substring(0, 2) + ' ' + 
+                     d.getDate() + ' ' + (months[d.getMonth() %12]) + ' ' + d.getFullYear() + ' ' +
+                     d.getHours() + ':' +
+                    (d.getMinutes() < 10 ? '0' : '') + d.getMinutes() + 'u'
+                   ).toLowerCase()
+
+      let pbf = (chargePortDoorOpen ? '<i class="fas fa-plug"></i> ' : '<span class="fa-layers fa-fw fa-6x" style="font-size: 12px;"><span class="fas fa-slash" data-fa-mask="fas fa-plug" data-fa-transform="down-2.25"></span><span class="fas fa-slash"></span></span>' ) + ' '
+      pbf += chargingState.toLowerCase() + ' '
+      pbf += ( chargingState=='Charging' ? '<span class="hide-under-740">@ ' + chargeRate + 'km/h</span> ' : '' )
+      pbf += '<span class="hide-under-370"><i class="fas fa-charging-station"></i> ' + chargeEnergyAdded + 'kWh </span>'
+      pbf += '<span class="hide-under-540">/' + chargeKmAdded + 'km </span>'
+      pbf += (chargingState == 'Charging' ? '<span class="hide-under-680"><i class="far fa-clock"></i> ' + minutesToFullCharge + 'min </span>' : '')
+      pbf += '<span class="hide-under-280">' + getBatteryIcon( (chargeCurrent * progressMax) /100) + ' ' + currentBatteryRange + ' km </span>'
+      pbf += '<span class="hide-under-580"><i class="far fa-calendar-check"></i> '+update+' </span>'
+      pbf += '<span class="border-secondary text-muted info-button-style-inline" data-toggle="tooltip" data-placement="bottom" data-html="true" title="" data-original-title="Laadsessie zoals door het voertuig gerapporteerd. Bij tussentijds stop/start kan het voertuig de sessie resetten en er een lagere lading weergegeven worden."> <i class="fas fa-info-circle"></i></span>'
+      drawProgresBarFooter(pbf, 20)
+      
+      $('[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+      $('.info-button-style-inline').hover(
+        function() { // mouseenter
+          $(this).removeClass('text-muted')
+          $(this).addClass('text-light')
+          $(this).css('cursor', 'help')
+        },
+        function(){  // mouseleave
+          $(this).removeClass('text-light')
+          $(this).addClass('text-muted')
+          $(this).css('cursor', 'default')
+        }
+      )
+      if (vehicleImg) {
+        let urlPrefix = '{{ url_for("static", filename="images/vehicles/") }}'
+        $('span#vehicleImg').append('<img class="vehicle-img" src="'+urlPrefix+vehicleImg+'">')
+        $('span#vehicleImg').show()
+      } else {
+        $('span#vehicleImg').hide()
+      }
+      // Slide down if not visible yet
+      showVehicleChargeState()
+    }
+    function enableVehicleConnectedIdicator(enabled) {
+      // Enable vehicle connected indicator
+      if (enabled) {
+        $('span#vehicleConnectedIndicator').empty()
+        $('span#vehicleConnectedIndicator').addClass('badge-secondary')
+        $('span#vehicleConnectedIndicator').removeClass('badge-success')
+        $('span#vehicleConnectedIndicator').addClass('badge-outlined')
+        $('span#vehicleConnectedIndicator').css({'padding-left': '4px'})
+        $('span#vehicleConnectedIndicator').append('<span class="fas fa-car" style="font-size: 12px;"></span>')
+        $('span#vehicleConnectedIndicator').attr('data-original-title','Verbindingstatus wordt opgehaald')
+        $('span#vehicleConnectedIndicator').tooltip('hide')
+      }
+      $('span#vehicleConnectedIndicatorSpacer').toggleClass('d-none', !enabled)
+      $('span#vehicleConnectedIndicator').toggleClass('d-none', !enabled)
+    }
+    function highlightVehicleIcon(e) {
+      switch (e.type) {
+        case 'mouseenter':
+          $('span#vehicleConnectedIndicator').addClass('badge-success')
+          $('span#vehicleConnectedIndicator').removeClass('badge-secondary')
+          break
+        case 'mouseleave':
+          $('span#vehicleConnectedIndicator').removeClass('badge-success')
+          $('span#vehicleConnectedIndicator').addClass('badge-secondary')
+          break
+      }
+    }
+ 
+    const VEHICLE_STATE_ASLEEP = 'asleep'
+    const VEHICLE_STATE_CONNECTED = 'connected'
+    const VEHICLE_STATE_DISCONNECTED = 'disconnected'
+    const VEHICLE_STATE_WAKINGUP = 'wakingup'
+    const VEHICLE_STATE_UNKNOWN = 'unknown'
+    function updateVehicleConnectedIdicator(state) {
+      // Enable vehicle connected indicator
+      $('span#vehicleConnectedIndicator').empty()
+//      $('#vehicleConnectedIndicator').off('click, mouseenter, mouseleave')
+      $('#vehicleConnectedIndicator').off('click', wakeupVehicle)
+      $('#vehicleConnectedIndicator').off('mouseenter, mouseleave', highlightVehicleIcon)
+      $('span#vehicleConnectedIndicator').css({'cursor': 'help'})
+      switch (state) {
+        case VEHICLE_STATE_CONNECTED:
+          $('span#vehicleConnectedIndicator').removeClass('badge-secondary')
+          $('span#vehicleConnectedIndicator').addClass('badge-success')
+          $('span#vehicleConnectedIndicator').removeClass('badge-outlined')
+          $('span#vehicleConnectedIndicator').css({'padding-left': '6px'})
+          $('span#vehicleConnectedIndicator').append(`<span class="fas fa-plug" style="font-size: 11px;"></span>`)
+          $('span#vehicleConnectedIndicator').attr('data-original-title','Verbonden')
+          break
+        case VEHICLE_STATE_DISCONNECTED:
+          $('span#vehicleConnectedIndicator').empty()
+          $('span#vehicleConnectedIndicator').addClass('badge-secondary')
+          $('span#vehicleConnectedIndicator').removeClass('badge-success')
+          $('span#vehicleConnectedIndicator').addClass('badge-outlined')
+          $('span#vehicleConnectedIndicator').css({'padding-left': '3px'})
+          $('span#vehicleConnectedIndicator').append(`<span class="fa-layers fa-fw fa-6x" style="font-size: 11px;">
+                                                        <span class="fas fa-slash" data-fa-mask="fas fa-plug" data-fa-transform="down-2.25"></span>
+                                                        <span class="fas fa-slash"></span>
+                                                      </span>`)
+          $('span#vehicleConnectedIndicator').attr('data-original-title','Niet aangesloten')
+          break
+        case VEHICLE_STATE_ASLEEP:
+          $('span#vehicleConnectedIndicator').addClass('badge-secondary')
+          $('span#vehicleConnectedIndicator').removeClass('badge-success')
+          $('span#vehicleConnectedIndicator').addClass('badge-outlined')
+          $('span#vehicleConnectedIndicator').css({'padding-left': '3px'})
+          $('span#vehicleConnectedIndicator').append(`<span class="" style="font-size: 10px;">z<sup>z<sup>z</sup></sup></span>`)
+          $('span#vehicleConnectedIndicator').attr('data-original-title','In slaap, klik om te wekken')
+          $('#vehicleConnectedIndicator').on('click', wakeupVehicle)
+          $('#vehicleConnectedIndicator').on('mouseenter', highlightVehicleIcon)
+          $('#vehicleConnectedIndicator').on('mouseleave', highlightVehicleIcon)
+          $('span#vehicleConnectedIndicator').css({'cursor': 'pointer'})
+          break
+        case VEHICLE_STATE_WAKINGUP:
+          $('span#vehicleConnectedIndicator').removeClass('badge-secondary')
+          $('span#vehicleConnectedIndicator').addClass('badge-success')
+          $('span#vehicleConnectedIndicator').addClass('badge-outlined')
+          $('span#vehicleConnectedIndicator').css({'padding-left': '3px'})
+          $('span#vehicleConnectedIndicator').append('<span class="fas fa-spinner fa-pulse" style="font-size: 14px;"></span>')
+          $('span#vehicleConnectedIndicator').attr('data-original-title','Voertuig wordt gewekt...')
+          break
+        case VEHICLE_STATE_UNKNOWN:
+          $('span#vehicleConnectedIndicator').addClass('badge-secondary')
+          $('span#vehicleConnectedIndicator').removeClass('badge-success')
+          $('span#vehicleConnectedIndicator').addClass('badge-outlined')
+          $('span#vehicleConnectedIndicator').css({'padding-left': '4px'})
+          $('span#vehicleConnectedIndicator').append('<span class="fas fa-car" style="font-size: 12px;"></span>')
+          $('span#vehicleConnectedIndicator').attr('data-original-title','Verbindingstatus wordt opgehaald')
+          break
+        default:
+          break
+      }
+      $('span#vehicleConnectedIndicator').tooltip('hide')
+    }
+    function requestVehicleChargeStateUpdate() {
+      console.log(timestamp() + ' requestVehicleChargeStateUpdate()')
+      $.ajax({
+        type		    : 'GET',
+        url			    : '/request_vehicle_charge_state/',
+        contentType : 'application/json',
+        dataType	  : 'json',
+        headers     : { 'ignore-login-next': 'true' },
+        encode		  : true
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log(data)
+      })
+      .fail(function(data) {
+        console.log(data)
+        // Probably not logged in
+      })
+      .always(function() {
+      })
+    }
+
+    function getRfidTokens() {
+      console.log(timestamp() + ' getRfidTokens()')
+      $.ajax({
+        type		    : 'GET',
+        url			    : '/rfid_tokens/',
+        contentType : 'application/json',
+        dataType	  : 'json',
+        headers     : { 'ignore-login-next': 'true' },
+        encode		  : true
+      }) // using the done promise callback
+      .done(function(data) {
+        // log data to the console so we can see
+        console.log(data)
+
+        // Delete the current options
+        $("#rfidToken").find('option').remove().end()
+
+        if (data.length == 0) {
+          var o = new Option('Geen tokens...', '-')
+          // jquerify the DOM object 'o' so we can use the html method
+          $(o).html('Geen tokens...')
+          $("#rfidToken").append(o)
+        }
+
+        if (data.length > 1) {
+          var o = new Option('Selecteer token...', '-')
+          // jquerify the DOM object 'o' so we can use the html method
+          $(o).html('<i>Selecteer token...</i>')
+          $("#rfidToken").append(o)
+        }
+
+        data.forEach(element => {
+          name = ((element.name != undefined && element.name.length > 0) ? 
+                  element.name : 
+                  '... [' + element.rfid + ']'
+                 )
+          namePrefix = ''
+          rfid = element.rfid
+          if (!isRfidValid(element.enabled, element.valid_from, element.valid_until)) {
+            // Not valid, tag
+            namePrefix = '[X] '
+            rfid = '-'
+          }
+          var o = new Option(namePrefix + name, rfid)
+          /// jquerify the DOM object 'o' so we can use the html method
+          $(o).html(namePrefix + name)
+          // Auto select this option if only one exists
+          if ( data.length == 1 )  {
+            $(o).prop('selected', true)
+            // If only one auto selected, enable quickstart button 
+            enableQuickStartButton( true )
+          }
+          $("#rfidToken").append(o)
+
+        })
+
+        // Enable quickstart
+        $('div#quickStart').toggleClass("d-none", false)
+
+        // Enable quickstart button when token selected, disable otherwise
+        $('select[id="rfidToken"]').on('change', function() {
+          enableQuickStartButton( (this.value != '-') )
+        })
+
+        $('[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+      })
+      .fail(function(data) {
+        console.log(data)
+        // Probably not logged in - disable quickstart
+        $('div#quickStart').toggleClass("d-none", true)
+      })
+      .always(function() {
+      })
+    }    
+
+    var usageSocket = undefined
+    var chargeSessionSocket = undefined
+    var evseStatusSocket = undefined
+    function startWebSocket() {
+      console.log(timestamp() + ' startWebSocket()')
+      // start up the SocketIO connection to the server on namespace /usage
+      usageSocket = io.connect(window.location.protocol+'//'+window.location.hostname+(window.location.port?':'+window.location.port:'')+'/usage')
+      // this is a callback that triggers when the "my response" event is emitted by the server.
+      usageSocket.on('status_update', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg.data))
+        if ( typeof msg === 'object' && msg !== null && msg.hasOwnProperty('data') ) {
+          updateGauges( msg.data )
+        } else {
+          o0 = { 'a_l1': '0.0', 'a_l2': '0.0', 'a_l3': '0.0', 'created_at': '01/01/1970, 00:00:00', 'enery_device_id': 'UNKNOWN', 'hz': "0.0", 'kw_total': "0",'kwh_l1': "0", 'kwh_l2': "0", 'kwh_l3': "0", 'p_l1': "0", 'p_l2': "0", 'p_l3': "0",'v_l1': "0", 'v_l2': "0", 'v_l3': "0" }
+          updateGauges( o0 )
+        }
+      })
+      // start up the SocketIO connection to the server on namespace /usage
+      chargeSessionSocket = io.connect(window.location.protocol+'//'+window.location.hostname+':'+window.location.port+'/charge_session')
+      // this is a callback that triggers when the "my response" event is emitted by the server.
+      chargeSessionSocket.on('charge_session_started', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        updateChargingIndicator( true, false, false, true )
+        // Enable the quick charge session button (rfid name from options)
+        setActiveChargeSession( {
+          chargeSession: true, 
+          rfid: {
+            name: $("select#rfidToken option[value="+msg.data.rfid+"]").text(),
+            rfid: msg.data.rfid
+            }
+          })
+        // Force gauge update
+        getChargeSessionStatus()
+        getUsageData(1)
+      })
+      chargeSessionSocket.on('charge_session_status_update', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        updateChargingIndicator( true, (msg.status == EVSE_STATE_CHARGING), false, true )
+      })
+      chargeSessionSocket.on('charge_session_data_update', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        updateTotalIndicator( msg.data.total_energy, msg.data.total_price, true, true )
+      })
+      chargeSessionSocket.on('charge_session_ended', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        updateChargingIndicator( false, false, false, true )
+        setActiveChargeSession( {
+          chargeSession: false
+        })
+        // Force gauge update
+        getChargeSessionStatus()
+        getUsageData(1)
+        hideVehicleChargeState()
+      })
+      chargeSessionSocket.on('off_peak_status_update', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        updateOffPeakIndicator( msg.data.offPeakEnabled, msg.data.isOffPeak, msg.data.peakAllowOnePeriod, false, true )
+      })
+      chargeSessionSocket.on('vehicle_status_update', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        // Wakeup request
+        switch (msg.data.request) {
+          case 'wakeupVehicle':
+            switch (msg.data.result) {
+              case 200: // OK
+                autoHideNotify('success','top-left', 'Wakker', 'Voertuig succesvol gewekt.')
+                updateVehicleConnectedIdicator(VEHICLE_STATE_UNKNOWN)
+                break
+              case 202: // ACCEPTED - pending
+                autoHideNotify('success','top-left', 'Wekken', 'Voertuig wordt gewekt...')
+                updateVehicleConnectedIdicator(VEHICLE_STATE_WAKINGUP)
+                break
+              case 424:
+                autoHideNotify('warning','top-left', 'Mislukt', 'Voertuig wekken mislukt')
+                updateVehicleConnectedIdicator(VEHICLE_STATE_ASLEEP)
+                break
+              default:
+                autoHideNotify('error','top-left', 'Mislukt', 'Voertuig wekken mislukt')
+                updateVehicleConnectedIdicator(VEHICLE_STATE_ASLEEP)
+                break
+            }
+            break
+          case 'clearWakeupVehicle':
+            // Valid message
+            console.log('clearWakeupVehicle vehicle_status_update received: ' + JSON.stringify(msg))
+            break
+          default:
+            console.error('Unknown vehicle_status_update received: ' + JSON.stringify(msg))
+            updateVehicleConnectedIdicator(VEHICLE_STATE_UNKNOWN)
+            break
+        }
+      })
+      chargeSessionSocket.on('vehicle_charge_status_update', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        enableVehicleConnectedIdicator(true)
+        // Hide if not online
+        if (msg.data.vehicle.state == 'asleep') {
+          updateVehicleConnectedIdicator(VEHICLE_STATE_ASLEEP)
+          hideVehicleChargeState()
+          return
+        }
+        if (msg.data.vehicle.state != 'online') {
+          updateVehicleConnectedIdicator(VEHICLE_STATE_UNKNOWN)
+          hideVehicleChargeState()
+          return
+        }
+        if (msg.data.chargeState == null) {
+          updateVehicleConnectedIdicator(VEHICLE_STATE_UNKNOWN)
+          hideVehicleChargeState()
+          return
+        }
+        // Vehicle online, information available. If charge door is open, we assume it is connected
+        // TODO: add GPS validation. Now assume charging here
+        chargePortDoorOpen = msg.data.chargeState?.chargePortDoorOpen                   // true | false
+        // Hide if not connected
+        if (!chargePortDoorOpen) {
+          updateVehicleConnectedIdicator(VEHICLE_STATE_DISCONNECTED)
+          hideVehicleChargeState()
+          return
+        }
+        updateVehicleConnectedIdicator(VEHICLE_STATE_CONNECTED)
+        progressMin = 0
+        progressMax = 100                                                               // 100 (percentage)
+        progressConversion = msg.data.chargeState?.chargeLimitSocMax /progressMax       // / happens to be 1 (@ 100%)
+        chargeCurrent = msg.data.chargeState?.batteryLevel * progressConversion         // %     90
+        chargeRequested = msg.data.chargeState?.chargeLimitSoc * progressConversion     // % white line
+        chargeEnergyAdded = msg.data.chargeState?.chargeEnergyAdded                     // kWh
+        chargeKmAdded = msg.data.chargeState?.chargeKmAddedRated                        // km
+        idealBatteryRange = msg.data.chargeState?.idealBatteryRange                     // km
+        batteryRange = (msg.data.chargeState?.idealBatteryRange / chargeCurrent) * progressMax  // km
+        chargeStart = chargeCurrent - ((chargeKmAdded / idealBatteryRange) *100)  // %     32.2/420 *100% = 7,65% (90-7,65=82,3%)
+        chargingState = msg.data.chargeState?.chargingState                             // Charging=Blue, Stopped=Danger, Complete=Green, Disconnected=Gray]
+        vehicleImg = msg.data.vehicle?.vehicle_img
+        drawVehicleChargeState(msg.data.vehicle.displayName,
+                                progressMin,
+                                progressMax,
+                                chargeRequested,
+                                chargeCurrent,
+                                chargingState,
+                                msg.data.chargeState.chargeRate,
+                                msg.data.chargeState.minutesToFullCharge,
+                                chargeEnergyAdded,
+                                chargeKmAdded,
+                                msg.data.chargeState?.idealBatteryRange,
+                                chargeStart,
+                                chargePortDoorOpen,
+                                msg.data.chargeState.timestamp,
+                                vehicleImg
+                              )
+
+// XXXXX
+//        updateOffPeakIndicator( msg.data.offPeakEnabled, msg.data.isOffPeak, msg.data.peakAllowOnePeriod, false, true )
+      })
+      chargeSessionSocket.on('vehicle_charge_status_stopped', function(msg) {
+        hideVehicleChargeState()
+        enableVehicleConnectedIdicator(false)
+      })
+      // start up the SocketIO connection to the server on namespace /evse_status
+      evseStatusSocket = io.connect(window.location.protocol+'//'+window.location.hostname+':'+window.location.port+'/evse_status')
+      evseStatusSocket.on('evse_enabled', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        updateEvseIndicator( true, false, true )
+      })
+      evseStatusSocket.on('evse_disabled', function(msg) {
+        console.log('Received: ' + JSON.stringify(msg))
+        updateEvseIndicator( false, false, true )
+      })
+    }
+
+    function updateEvseIndicator( evseEnabled, error, on ) {
+      // Dark when off
+      $('span#evseEnabledIndicator').toggleClass('badge-dark', !on)
+      if (!on) $('span#evseEnabledIndicator').attr('data-original-title','')
+      // Red on error
+      $('span#evseEnabledIndicator').toggleClass('badge-danger', (on && error))
+      if (on && error) $('span#evseEnabledIndicator').attr('data-original-title','EVSE status onbekend')
+      // Dark if no evse enabled
+      $('span#evseEnabledIndicator').toggleClass('badge-warning', (on && !error && !evseEnabled))
+      if (on && !error && !evseEnabled) $('span#evseEnabledIndicator').attr('data-original-title','EVSE geblokkeerd')
+      // Green if evse enabled
+      $('span#evseEnabledIndicator').toggleClass('badge-success', (on && !error && evseEnabled))
+      if (on && !error && evseEnabled) $('span#evseEnabledIndicator').attr('data-original-title','EVSE ingeschakeld')
+    }
+    function updateChargingIndicator( chargeSession, charging, error, on ) {
+      // Dark when off
+      $('span#chargingIndicator').toggleClass('badge-dark', !on)
+      $('span#chargingIndicator').toggleClass('badge-outlined', !on)
+      if (!on) $('span#chargingIndicator').attr('data-original-title','')
+      if (!on) $('span#chargingIndicator').html('<i class="far fa-clipboard"></i>')
+      if (!on) gaugeOneStatus = 'Uitgeschakeld'
+      // Red on error
+      $('span#chargingIndicator').toggleClass('badge-danger', (on && error))
+      if (on && error) $('span#chargingIndicator').attr('data-original-title','Laadsessie status onbekend')
+      if (on && error) $('span#chargingIndicator').html('<i class="far fa-clipboard"></i>')
+      if (on && error) gaugeOneStatus = 'Foutmelding'
+      // Dark if no session active
+      $('span#chargingIndicator').toggleClass('badge-secondary', (on && !error && !chargeSession))
+      $('span#chargingIndicator').toggleClass('badge-outlined', (on && !error && !chargeSession))
+      if (on && !error && !chargeSession) $('span#chargingIndicator').attr('data-original-title','Geen laadsessie actief')
+      if (on && !error && !chargeSession) $('span#chargingIndicator').html('<i class="far fa-clipboard"></i>')
+      if (on && !error && !chargeSession) gaugeOneStatus = 'Geen sessie'
+      // Yellow if session active, but not charging
+      $('span#chargingIndicator').toggleClass('badge-warning', (on && !error && chargeSession && !charging))
+      if (on && !error && chargeSession && !charging) $('span#chargingIndicator').attr('data-original-title','Niet aan het laden')
+      if (on && !error && chargeSession && !charging) $('span#chargingIndicator').html('<i class="mdi mdi-battery-charging-40"></i>')
+      if (on && !error && chargeSession && !charging) gaugeOneStatus = 'Wachten'
+      // Blue if charging (should have an active session active)
+      $('span#chargingIndicator').toggleClass('badge-primary', (on && !error && chargeSession && charging))
+      if (on && !error && chargeSession && charging) $('span#chargingIndicator').attr('data-original-title','Actief aan het laden')
+      if (on && !error && chargeSession && charging) $('span#chargingIndicator').html('<i class="mdi mdi-battery-charging-40"></i>')
+      if (on && !error && chargeSession && charging) gaugeOneStatus = 'Laden'
+    }
+    // Error: red, not enabled: gray, enabled peak: orange, off peak: green, allowed-once: blue (info)
+    function updateOffPeakIndicator( offPeakEnabled, offPeak, offPeakAllowedOnce, error, on ) {
+      // Dark when off
+      $('span#offPeakIndicator').toggleClass('badge-dark', !on)
+      if (!on) $('span#offPeakIndicator').attr('data-original-title','')
+      // Red on error
+      $('span#offPeakIndicator').toggleClass('badge-danger', (on && error))
+      if (on && error) $('span#offPeakIndicator').attr('data-original-title','Laadsessie open')
+      // Dark if disabled
+      $('span#offPeakIndicator').toggleClass('badge-secondary', (on && !error && !offPeakEnabled))
+      $('span#offPeakIndicator').toggleClass('badge-outlined', (on && !error && !offPeakEnabled))
+      if (on && !error && !offPeakEnabled) $('span#offPeakIndicator').attr('data-original-title','Daluren niet ingesteld')
+      // Green is enabled and off peak
+      $('span#offPeakIndicator').toggleClass('badge-success', (on && !error && offPeakEnabled && offPeak))
+      if (on && !error && offPeakEnabled && offPeak) $('span#offPeakIndicator').attr('data-original-title','Daluren')
+      // Blue if enabled and allowed once
+      $('span#offPeakIndicator').toggleClass('badge-info', (on && !error && offPeakEnabled && !offPeak && offPeakAllowedOnce))
+      if (on && !error && offPeakEnabled && !offPeak && offPeakAllowedOnce) $('span#offPeakIndicator').attr('data-original-title','Eenmalig piekuren toegestaan')
+      // Orange if enabled and peak
+      $('span#offPeakIndicator').toggleClass('badge-warning', (on && !error && offPeakEnabled && !offPeak && !offPeakAllowedOnce))
+      if (on && !error && offPeakEnabled && !offPeak && !offPeakAllowedOnce) $('span#offPeakIndicator').attr('data-original-title','Buiten daluren')
+    }
+    function updateTotalIndicator( kwh, price, chargeSession, on ) {
+//      $('span#totalKwhIndicator').toggle(chargeSession && on && kwh != undefined)
+      $('span#totalKwhIndicator').toggle(false)
+//      $('span#totalKwhIndicatorSpacer').toggle(chargeSession && on && kwh != undefined)
+      $('span#totalKwhIndicatorSpacer').toggle(false)
+//      $('span#totalPriceIndicator').toggle(chargeSession && on && price != undefined)
+      $('span#totalPriceIndicator').toggle(false)
+//      $('span#totalPriceIndicatorSpacer').toggle(chargeSession && on && price != undefined)
+      $('span#totalPriceIndicatorSpacer').toggle(false)
+      $('span#totalKwhIndicator').html(kwh != undefined ? (Math.round(kwh * 10) /10).toFixed(1) + 'kWh' : '')
+      $('span#totalPriceIndicator').html(price != undefined ? '&euro; ' + (Math.round(price * 100) /100).toFixed(2) : '')
+      if (on && chargeSession) {
+        if (kwh != undefined && price != undefined) {
+          gaugeOneSession = (Math.round(kwh * 10) /10).toFixed(1) + 'kWh &euro; ' + (Math.round(price * 100) /100).toFixed(2)
+        } else {
+          gaugeOneSession = "Laadsessie actief"
+        }
+      } else {
+        gaugeOneSession = 'Geen laadsessie'
+      }
+    }
+    function updateAuthIndicator( auth, error, on ) {
+      // Dark when off
+      $('span#authStatusIndicator').toggleClass('badge-dark', !on)
+      if (!on) $('span#authStatusIndicator').attr('data-original-title','')
+      // Red on error
+      $('span#authStatusIndicator').toggleClass('badge-danger', (on && error))
+      if (on && error) $('span#authStatusIndicator').attr('data-original-title','')
+      // Dark if not logged in
+      $('span#authStatusIndicator').toggleClass('badge-secondary', (on && !error && !auth))
+      $('span#authStatusIndicator').toggleClass('badge-outlined', (on && !error && !auth))
+      if (on && !error && !auth) $('span#authStatusIndicator').attr('data-original-title','Niet aangemeld')
+      // Green if logged in
+      $('span#authStatusIndicator').toggleClass('badge-success', (on && !error && auth))
+      if (on && !error && auth) $('span#authStatusIndicator').attr('data-original-title','Aangemeld')
+    }
+
+    jQuery(document).ready(function () {
+      console.log(timestamp() + " file load completed")
+
+      $('input#enabled').bootstrapToggle()
+      $('[data-toggle=tooltip]').tooltip({ 
+        boundary: 'window', 
+        trigger : 'hover'   // Allow button clicks
+      })
+      updateTotalIndicator( '', '', false )
+      getChargeSessionStatus()
+      getUsageData(1)
+      startWebSocket()
+      if ({% if oppleoconfig.webChargeOnDashboard %}true{% else %}false{% endif %}) {
+        getRfidTokens()
+        // Quick start button action
+        $('button#startChargeSession').click(function() {
+          var rfidTokenName = $( "select#rfidToken option:selected" ).text()
+          var rfidTokenID = $( "select#rfidToken" ).val()
+          window.location.href = '/start_charge_session/' + rfidTokenID + '?next_page=dashboard'
+        })
+        $('button#stopChargeSession').click(function() {
+          // Find charge session id to stop
+          if ( activeChargeSession == undefined || 
+              !activeChargeSession.hasOwnProperty("chargeSession") || 
+              !activeChargeSession.chargeSession ||
+              !activeChargeSession.hasOwnProperty("data") && 
+              !activeChargeSession.data.hasOwnProperty("id")) {
+            // No active charge session!
+            alert("No active charge session!")
+            // TODO
+            // - nette melding
+            // - activeer startSession knop als ingelogd
+          }
+          // Active charge session
+          window.location.href = '/stop_charge_session/' + activeChargeSession.data.id + '?next_page=dashboard'
+        })
+      }
+      {% if oppleoconfig.vehicleDataOnDashboard %}
+      // Don't actively request this information. Will come through web sockets, this call blocks the front end.
+      enableVehicleConnectedIdicator({% if current_user.is_authenticated() %}true{% else %}false{% endif %})
+      requestVehicleChargeStateUpdate()
+      {% endif %}
+    })
+
+    </script>
+
+{% endblock %}
+{% block content %}
+
+
+<div class="wrapper">
+  <div class="container-fluid">
+
+      <!-- Page-Title -->
+      <div class="row">
+          <div class="col-sm-12">
+                <div class="page-title-box">
+                  <div class="btn-group pull-right">
+
+                      <span class="badge badge-dark"
+                            id="evseEnabledIndicator"
+                            data-toggle="tooltip" 
+                            data-placement="bottom" 
+                            data-html="true" 
+                            title="EVSE-status onbekend"
+                            >
+                            <i class="fas fa-charging-station"></i>
+                      </span>
+                      <span id="offPeakIndicatorSpacer">&nbsp;</span>
+                      <span class="badge badge-dark"
+                            id="offPeakIndicator"
+                            data-toggle="tooltip" 
+                            data-placement="bottom" 
+                            data-html="true" 
+                            title="Dalurenstatus onbekend"
+                            >
+                            <i class="far fa-clock"></i>
+                      </span>
+                      <span id="chargingIndicatorSpacer">&nbsp;</span>
+                      <span class="badge badge-dark"
+                            id="chargingIndicator"
+                            data-toggle="tooltip" 
+                            data-placement="bottom" 
+                            data-html="true" 
+                            title="Laadstatus onbekend"
+                            >
+                            <i class="mdi mdi-battery-charging-40"></i>
+                      </span>
+                      <span id="totalKwhIndicatorSpacer">&nbsp;</span>
+                      <span class="badge badge-outlined badge-secondary"
+                            id="totalKwhIndicator"
+                            data-toggle="tooltip" 
+                            data-placement="bottom" 
+                            data-html="true" 
+                            title="Laadenergie deze sessie tot nu toe"
+                            >
+                      </span>
+                      <span id="totalPriceIndicatorSpacer">&nbsp;</span>
+                      <span class="badge badge-outlined badge-secondary"
+                            id="totalPriceIndicator"
+                            data-toggle="tooltip" 
+                            data-placement="bottom" 
+                            data-html="true" 
+                            title="Laadkosten deze sessie tot nu toe"
+                            >
+                      </span>
+                      <span id="authStatusIndicatorSpacer">&nbsp;</span>
+                      <span class="badge badge-dark"
+                            id="authStatusIndicator"
+                            data-toggle="tooltip" 
+                            data-placement="bottom" 
+                            data-html="true" 
+                            title="Niet aangemeld"
+                            >
+                            <i class="fas fa-user"></i>
+                      </span>
+                      <span id="vehicleConnectedIndicatorSpacer" class="d-none">&nbsp;</span>
+                      <span class="badge badge-outlined badge-secondary d-none"
+                            id="vehicleConnectedIndicator"
+                            style="width: 22.25px; padding-left: 4px;"
+                            data-toggle="tooltip" 
+                            data-placement="bottom" 
+                            data-html="true" 
+                            title="Verbindingstatus wordt opgehaald"
+                            >
+                            <span class="fas fa-car" style="font-size: 12px;"></span>
+                      </span>
+        
+                </div>
+                <h4 class="page-title">Dashboard</h4>
+              </div>
+
+          </div>
+      </div>
+      <!-- end page title end breadcrumb -->
+
+      <div id="vehicleChargeState" class="row d-none"">
+        <div class="col-12">
+          <div class="card-box">
+            <h4 class="header-title ml-2" id="vehicleChargeStateHeader"></h4>
+            <span id="vehicleImg" style="display: none;"></span>
+            <div class="row justify-content-around">
+              <div class="col-12 cos-xs-12 col-auto m-t-xs-40">
+                <div class="progress progress-md m-b-20" id="vehicleChargeStateProgress">
+                </div>    
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> <!-- end row -->
+
+      <div class="row">
+
+        <div id="gauger_1" class="col-lg-3" style="height: 220px; overflow: hidden; margin-bottom: 20px;">
+          <div class="card-box">
+              <h6 id="gauger_1_scale_min" class="" style="position: absolute; top: 197px; right: 50%; margin-right: 73px; text-align: right;">.</h6>
+              <h6 id="gauger_1_scale_max" class="" style="position: absolute; top: 197px; left: 50%; margin-left: 73px; text-align: left;">.</h6>
+
+              <h5 id="gauger_1_inset" class="invisible" data-toggle="tooltip" data-placement="bottom" title="" style="position: absolute; top: 20px; right: 20px; text-align: right;">...W</h5>
+              <h6 id="gauger_1_insettitle" class="invisible" style="position: absolute; top: 35px; right: 20px; text-align: right;">...</h6>
+              <h4 id="gauger_1_title" class="m-t-0 header-title"><b>...</b></h4>
+              <p id="gauger_1_subtitle" class="text-muted m-b-30 font-13">...</p>
+              <div class="slrdb_activity_wrapper">
+                <div class="row text-center">
+                  <div id="gauger_1_circliful" class="circliful-chart" data-dimension="200" data-text="0" data-info="..." data-width="30" data-fontsize="24" data-percent="0" data-fgcolor="#3bafda" data-bgcolor="#505A66" data-type="half" data-fill="#36404a"></div>
+                </div>
+              </div>
+          </div>
+        </div>
+
+        <div id="gauger_2" class="col-lg-3" style="height: 220px; overflow: hidden; margin-bottom: 20px;">
+          <div class="card-box">
+              <h6 id="gauger_2_scale_min" class="" style="position: absolute; top: 197px; right: 50%; margin-right: 73px; text-align: right;">.</h6>
+              <h6 id="gauger_2_scale_max" class="" style="position: absolute; top: 197px; left: 50%; margin-left: 73px; text-align: left;">.</h6>
+
+              <h5 id="gauger_2_inset" class="invisible" data-toggle="tooltip" data-placement="bottom" title="â‚¬ 0,00" style="position: absolute; top: 20px; right: 20px; text-align: right; color: #3bafda;">...W</h5>
+              <h6 id="gauger_2_insettitle" class="invisible" style="position: absolute; top: 35px; right: 20px; text-align: right;">...</h6>
+              <h4 id="gauger_2_title" class="m-t-0 header-title"><b>...</b></h4>
+              <p id="gauger_2_subtitle" class="text-muted m-b-30 font-13">...</p>
+              <div class="slrdb_activity_wrapper">
+                <div class="row text-center">
+                  <div id="gauger_2_circliful" class="circliful-chart" data-dimension="200" data-text="0" data-info="..." data-width="30" data-fontsize="24" data-percent="0" data-fgcolor="#3bafda" data-bgcolor="#505A66" data-type="half" data-fill="#36404a"></div>
+                </div>
+              </div>
+          </div>
+        </div>
+
+        <div id="gauger_3" class="col-lg-3" style="height: 220px; overflow: hidden; margin-bottom: 20px;">
+          <div class="card-box">
+              <h6 id="gauger_3_scale_min" class="" style="position: absolute; top: 197px; right: 50%; margin-right: 73px; text-align: right;">.</h6>
+              <h6 id="gauger_3_scale_max" class="" style="position: absolute; top: 197px; left: 50%; margin-left: 73px; text-align: left;">.</h6>
+
+              <h5 id="gauger_3_inset" class="invisible" data-toggle="tooltip" data-placement="bottom" title="â‚¬ 0,00" style="position: absolute; top: 20px; right: 20px; text-align: right; color: #3bafda;">...W</h5>
+              <h6 id="gauger_3_insettitle" class="invisible" style="position: absolute; top: 35px; right: 20px; text-align: right;">...</h6>
+              <h4 id="gauger_3_title" class="m-t-0 header-title"><b>...</b></h4>
+              <p id="gauger_3_subtitle" class="text-muted m-b-30 font-13">...</p>
+              <div class="slrdb_activity_wrapper">
+                <div class="row text-center">
+                  <div id="gauger_3_circliful" class="circliful-chart" data-dimension="200" data-text="0" data-info="..." data-width="30" data-fontsize="24" data-percent="0" data-fgcolor="#3bafda" data-bgcolor="#505A66" data-type="half" data-fill="#36404a"></div>
+                </div>
+              </div>
+          </div>
+        </div>
+
+        <div id="gauger_4" class="col-lg-3" style="height: 220px; overflow: hidden; margin-bottom: 20px;">
+          <div class="card-box">
+              <h6 id="gauger_4_scale_min" class="" style="position: absolute; top: 197px; right: 50%; margin-right: 73px; text-align: right;">.</h6>
+              <h6 id="gauger_4_scale_max" class="" style="position: absolute; top: 197px; left: 50%; margin-left: 73px; text-align: left;">.</h6>
+
+              <h5 id="gauger_4_inset" class="invisible" data-toggle="tooltip" data-placement="bottom" title="â‚¬ 0,00" style="position: absolute; top: 20px; right: 20px; text-align: right; color: #3bafda;">...W</h5>
+              <h6 id="gauger_4_insettitle" class="invisible" style="position: absolute; top: 35px; right: 20px; text-align: right;">...</h6>
+              <h4 id="gauger_4_title" class="m-t-0 header-title"><b>...</b></h4>
+              <p id="gauger_4_subtitle" class="text-muted m-b-30 font-13">...</p>
+              <div class="slrdb_activity_wrapper">
+                <div class="row text-center">
+                  <div id="gauger_4_circliful" class="circliful-chart" data-dimension="200" data-text="0" data-info="..." data-width="30" data-fontsize="24" data-percent="0" data-fgcolor="#3bafda" data-bgcolor="#505A66" data-type="half" data-fill="#36404a"></div>
+                </div>
+              </div>
+          </div>
+        </div>
+
+      </div> <!-- end row -->
+
+      <div id="quickStart" class="row d-none">
+        <div class="col-12">
+          <div class="card-box table-responsive">
+
+            <div class="form-group row mt-2 mr-5" id="newTokenInputForm">
+
+              <div class="input-group-prepend mr-1 ml-auto">
+                <span id="activeTokenSpan" class="input-group-text b-0 bg-transparent text-muted b-none" >
+                  <i class="fas fa-charging-station mr-1"></i> 
+                  <span id="activeTokenText">Actief token</span>
+                </span>
+              </div>
+             
+              <div class="input-group-append">
+                <div class="input-group-append">
+                  <select class="form-control" id="rfidToken" name="rfidToken">
+                    <option value="-" style="font-style: italic;">Geen tokens...</option>
+                  </select>
+                </div>
+              </div>
+  
+              <div class="input-group-append">
+                <button type="button" id="startChargeSession" style="float: right;" class="btn btn-outline-primary waves-effect waves-light ml-3" disabled> 
+                  <i class="fas fa-charging-station"></i> Start laadsessie
+                </button>
+              </div>
+
+              <div class="input-group-append">
+                <button type="button" id="stopChargeSession" style="float: right;" class="btn btn-outline-primary waves-effect waves-light ml-3 d-none"> 
+                  <i class="far fa-hand-paper"></i> Stop laadsessie
+                </button>
+              </div>
+
+              <div class="input-group-append info-button-style col-xs-3 ml-1 text-white cursor-help">
+                <span class="input-group-text border-secondary bg-dark b-1 text-secondary bg-secondary text-muted" data-toggle="tooltip" data-placement="bottom" data-html="true" title="" data-original-title="Selecteer een RFID token en klik <b>Start laadsessie</b> om direct een laadsessie te starten. Klik op <b>Stop laadsessie</b> om de huidige sessie te beëindigen.">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+            </div>
+
+          </div>
+
+ 
+          </div>
+        </div>
+      </div> <!-- end row -->
+  
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+import logging
+import json
+
+from nl.oppleo.config.OppleoSystemConfig import OppleoSystemConfig
+from nl.oppleo.config.OppleoConfig import OppleoConfig
+from nl.oppleo.services.EvseReaderProd import EvseReaderProd
+from nl.oppleo.services.EvseReaderSimulate import EvseReaderSimulate
+
+oppleoSystemConfig = OppleoSystemConfig()
+oppleoConfig = OppleoConfig()
+
+class EvseReader(object):
+    __logger: logging.Logger = logging.getLogger(__name__)
+    reader = None
+
+    def __init__(self):
+        self.__logger.setLevel(level=oppleoSystemConfig.getLogLevelForModule(self.__class__.__module__))   
+        if oppleoSystemConfig.evseLedReaderEnabled:
+            self.__logger.info("Using production Evse reader")
+            self.reader = EvseReaderProd()
+        else:
+            self.__logger.warning("Using SIMULATED Evse reader!")
+            self.reader = EvseReaderSimulate()
+
+    def loop(self, cb_until, cb_result):
+        try:
+            self.reader.loop(cb_until, cb_result)
+        except Exception as e:
+            self.__logger.error('Could not start EvseReader loop ({})'.format(str(e)))
+
+    def diag(self):
+        return json.dumps({
+            "reader_class": "-" if self.reader is None else type(self.reader).__name__,
+            "reader": "-" if self.reader is None else json.loads(self.reader.diag())
+            }, 
+            default=str     # Overcome "TypeError: Object of type datetime is not JSON serializable"
+        )

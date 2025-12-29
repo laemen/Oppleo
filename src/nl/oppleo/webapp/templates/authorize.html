@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+
+    <meta charset="utf-8" />
+    <title>Autorisatie - Oppleo {{ now.year }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta content="Python gebaseerde laadpunt-administratiesoftware draaiend op een Raspberry Pi. Modbus energiemeter (kWh) uitlezing, SmartEVSE aansturing, RFID lezer, status LED en buzzer aansturing." name="description" />
+    <meta content="Frans Laemen" name="author" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/oppleo32.ico') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <meta name="theme-color" content="#3BAFDA">
+
+    <!-- App css -->
+    <link rel="stylesheet" type="text/css"
+      href="{{ url_for('static', filename='plugins/bootstrap/4.4.1/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/icons.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+
+    {% include 'includes/include.jquery-3.3.1.html' %}
+
+    <!-- Minton template -->
+    <script src="{{ url_for('static', filename='js/jquery.core.js') }}"></script>
+
+    <!-- Fontawesome -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='plugins/fontawesome/5.13.3/css/all.min.css') }}">
+
+    <!-- Styled Notifications -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='plugins/styled-notifications/dist/notifications.css') }}">
+    <script src="{{ url_for('static', filename='plugins/styled-notifications/dist/notifications.js') }}"></script>
+
+
+    <!-- Add webpage to the iOS Home screen. -->
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/oppleo.png') }}">
+    <!-- iOS Launch Screen Image -->
+    <link rel="apple-touch-startup-image" href="{{ url_for('static', filename='images/oppleo512.png') }}">
+    <!-- Adding a Launch Icon Title -->
+    <meta name="apple-mobile-web-app-title" content="Oppleo">
+    <!-- Hide Safari User Interface Components -->
+    <!-- Set the mobile-web-app-capable meta tag to yes to turn on standalone mode. -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- You can determine whether a webpage is displaying in standalone mode using the window.navigator.standalone read-only Boolean JavaScript property. -->
+    <!-- Changing the Status Bar Appearance -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="msapplication-starturl" content="/">
+
+    <!-- Oppleo webauthn functions -->
+    <script src="{{ url_for('static', filename='js/oppleo-webauthn.js') }}"></script>
+
+    <style>
+    button {
+        cursor: pointer;
+    }
+    </style>
+    <script>
+    function timestamp() {
+      d = new Date();
+      return (d.getFullYear() + "-" + 
+              (d.getMonth()<10?'0':'') + (d.getMonth()+1) + "-" + 
+              (d.getDate()<10?'0':'') + d.getDate() + '.' + 
+              (d.getHours()<10?'0':'') + d.getHours() + ":" + 
+              (d.getMinutes()<10?'0':'') + d.getMinutes() + "." + 
+              (d.getSeconds()<10?'0':'') + d.getSeconds() + '.' + 
+              (d.getMilliseconds()<100?'0':'') + (d.getMilliseconds()<10?'0':'') + d.getMilliseconds()
+      )
+    }
+    function camelToUnderscore(key) {
+      return key.replace( /([A-Z])/g, "_$1").toLowerCase()
+    }    
+    function autoHideNotify( theme='success', position='top-left', title, message, duration=2500 ) {
+      if (theme=='danger') { theme = 'error' }
+      window.createNotification({
+        theme: theme,
+        closeOnClick: true,
+        // nfc-top-left
+        // nfc-bottom-right
+        // nfc-bottom-left
+        positionClass: 'nfc-' + position,
+        // timeout in milliseconds
+        showDuration: duration,
+        })({
+            title: title,
+            message: message
+        })
+      }
+      jQuery(document).ready(function () {
+      $("button[id^=show_]").click(function() {
+          id = $(this).attr('id').split("show_").pop()
+          $('input[id='+id).attr(
+            'type', 
+            ( $('input[id='+id).attr('type') === "password" ? 'text' : 'password')
+          )
+          $(this).find('i').toggleClass('fa-eye')     // far fa-eye
+          $(this).find('i').toggleClass('fa-eye-slash') // far fa-eye-slash
+        })
+        $('button[data-toggle=tooltip]').tooltip({ boundary: 'window' })
+        $('button#cancel').click(function(){
+            window.history.back()
+        })
+        {% if hasRegisteredCredentials %}
+          /* --- START PASSKEY --- */
+          $('button#login-passkey').on('click', function (ev) {
+            // if user known validate, otherwise discover
+            let pka = PASSKEY_ACTION.{{ passkeyAction }}
+            {% if passkeyActionUrl is defined %}pka.url = '{{ passkeyActionUrl }}'{% endif %}
+            let npv = $('form#authorize-form input#next_page').val()
+            if (typeof npv == 'string') pka.nextPage = npv
+            getWebauthnAuthenticationOptions('{{ csrf_token() }}', pka, '{{ current_user.username }}')
+          })
+        {% endif %}
+        // Remove spinner
+        $('.spinner').hide()
+      })
+    </script>   
+  </head>
+  <body>
+
+    <div class="wrapper">
+      <div class="container-fluid">
+        <div class="row d-flex justify-content-center">
+          <div class="col-sm-6">
+
+            <form id="authorize-form" class="" method="POST">
+              {{ form.csrf_token }}
+              {{ form.next_page }}
+
+              <div class="text-center">
+                  <span class="logo-lg"><i class="fas fa-lock"></i></i> <span>{{ requesttitle }}</span> </span>
+              </div>
+
+              {% if requestdescription %}
+              <div class="text-center">
+                &nbsp;
+              </div>
+              <div class="{% if requestdescriptionclass is none %}text-center text-danger{% else %}{{ requestdescriptionclass }}{%endif %}" >
+                <span>{{ requestdescription|safe }}</span>
+              </div>
+              <div class="text-center">
+                &nbsp;
+              </div>
+              {% endif %}
+
+              <div class="text-center">
+                &nbsp;
+              </div>
+
+
+              {% if extra_field_enabled %}
+              <div class="text-center" style="color: #3bafda;">
+                <span>{{ extra_field_description|safe }}</span>
+              </div>
+              <div class="text-center">
+                &nbsp;
+              </div>
+              <div class="form-group row">
+                <div class="col-12">
+                    <div class="input-group">
+                      <span class="input-group-prepend">
+                        <span class="input-group-text bg-secondary border border-secondary text-muted">
+                            <i class="{{ extra_field_icon }}"></i>
+                        </span>
+                      </span>
+                      <input class="form-control" name="extra_field" type="text" placeholder="{{ extra_field_placeholder }}" value="{% if form.extra_field.data is not none %}{{ form.extra_field.data }}{% endif %}">
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-center">
+                &nbsp;
+              </div>            
+              {% endif %}
+
+              <div class="text-center text-primary">
+                <span class="font-weight-bold">{% if password_field_description %}{{ password_field_description }}{% else %}Voer het wachtwoord in{% endif %}</span>
+              </div>
+            
+              <div class="text-center">
+                &nbsp;
+              </div>
+            
+              {% if errormsg %}
+              <div class="text-center text-danger">
+                <h3>
+                  <span class="mdi mdi-alert-outline"> <span class="font-weight-bold">{{ errormsg }}</span></span>
+                </h3>
+            </div>
+              {% endif %}
+            
+              {% if form.errors %}
+              <div class="text-center text-danger">
+                <span class="mdi mdi-alert-outline"><span class="font-weight-bold"> {{ form.errors }}</span></span>
+              </div>
+              {% endif %}
+
+              <div class="form-group row">
+                <div class="col-12">
+                  <div class="input-group">
+                    <span class="input-group-prepend">
+                      <span class="input-group-text bg-secondary border border-secondary text-muted">
+                          <i class="mdi mdi-radar"></i>
+                      </span>
+                    </span>
+                    <input class="form-control" id="password" name="password" type="password" required="" placeholder="Password" value="{% if form.password.data is not none %}{{ form.password.data }}{% endif %}">
+                    <span class="input-group-append">
+                      <button 
+                          id="show_password"
+                          type="button" 
+                          class="btn waves-effect waves-light btn-primary" 
+                          data-toggle="tooltip" 
+                          data-placement="bottom" 
+                          data-html="true" 
+                          title="<em>Klik om de tekst zichtbaar te maken</em>"
+                          >
+                          <i class="far fa-eye"></i>
+                      </button>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-center">
+                &nbsp;
+              </div>
+            
+              <div class="form-group text-right m-t-20">
+                <div class="col-xs-12">
+                  {% if hasRegisteredCredentials %}
+                  <button id="login-passkey" class="btn btn-success btn-custom waves-effect waves-light"
+                  type="button"><i class="fab fa-keycdn"></i></button>
+                  {% endif %}
+                  <button id="cancel" class="btn btn-secondary btn-custom w-md waves-effect waves-light" type="button">Annuleren</button>
+                  <button class="btn btn-primary btn-custom w-md waves-effect waves-light" type="submit">{{ buttontitle }}</button>
+                </div>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </body>  
+</html>
