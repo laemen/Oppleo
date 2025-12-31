@@ -1,0 +1,263 @@
+Version 1.8             2025-12-01
+
+Added
+- Polestar odometer
+
+Version 1.7.4           2024-12-05
+
+Added
+- WebAuthN Passkey authorization support for charge session changes
+
+Version 1.7.3           2024-11-14
+
+Fixed
+- WebAuthN Passkey support
+
+Version 1.7.2           2024-11-11
+
+Fixed
+- WebAuthN Passkey support on non-chrome browsers
+
+Version 1.7.1           2024-11-08
+
+Added
+- WebAuthN Passkey support (a.o. Ubikey, MS Hello) for action authorization
+
+Version 1.7.0           2024-11-05
+
+Added
+- WebAuthN Passkey support (a.o. Ubikey, MS Hello) for login
+
+Fixed
+- Unique username.
+- Local 2FA enforcement issue
+
+Version 1.6.4           2024-10-04
+
+Fixed
+- Git integration. Git security validation issue.
+
+Version 1.6.3           2024-10-03
+
+Fixed
+- 2FA QR code not shown
+
+Version 1.6.2           2024-07-02
+
+Fixed
+- Fixed multiple vehicles in Tesla account
+
+Version 1.6.1           2024-06-28
+
+Added
+- Volts and Hz changes in MQTT output (potential increasing accuracy)
+
+
+Version 1.6.0           2023-12-30
+
+Added
+- Home Assistant MQTT output, with auto discovery, BWLT, and session updates. (Control to be added later)
+- EVSE and Modbus Reader simulation for debugging
+- Datailed logging filtering
+
+Fixed
+- Fixed reference error
+- Logout with MQTT enabled failed
+- removed auto session stop/start when no active session is present
+- Pillow from 9.5.0 to to 10.2.0
+- Jinja2 from 3.1.2 to 3.1.3
+- pycryptodome from 3.12.0 to 3.20.0
+- cryptography from 41.0.3 to 42.0.1
+- WTForms from 2.2.1 to 3.1.2
+- Delete empty session fail
+- Teslapy 2.9.0 from 2.8.0 fixing API access
+
+Version 1.5.0           2023-11-16
+
+Added
+- Charger name is now free text (no longer used as db table name etc.)
+
+Fixed
+- Catch exception when obtaining composed vehicle image (Tesla)
+- Update packages: teslapy, Werkzeug, Jinja2, itsdangerous, click, blinker, flask, Flask-WTF, python-engineio, python-socketio, Flask-SocketIO, Flask-Login, certifi, cryptography, and requests
+- Fixed issue unsupported version of the Socket.IO or Engine.IO protocols
+
+Version 1.4.0           2022-03-01
+
+Added
+- Vehicle image on dashboard and token screens for Tesla. Ini file option to overrule option codes.
+- Modbus parameters configurable in settings.
+
+Fixed
+- Tesla authorization not working. Replaced TeslaApi with standard lib TeslaPy. Added refresh token and URL authorization. No headless autorization supported at this time.
+
+Version 1.3.7           2022-01-03
+
+Added
+- Send history through MQTT
+
+Version 1.3.6           2021-12-27
+
+Fixed
+- More robust autosession. Recover from stop-starting non open session.
+
+Version 1.3.5           2021-12-22
+
+Fixed
+- Fixed SocketIO protocol version mismatch. Reverted 5 to 4. Upgraded JS package to 2.3.1
+
+Version 1.3.5           2021-12-22
+
+Fixed
+- Fixed enabling pushover (missing button event)
+- Added Pushover and MQTT to oppleo.example.ini 
+
+Version 1.3.4           2021-12-21
+
+Fixed
+- Downgraded cryptography package to 3.1.1 (from 36.0.1) due to missing Rust compiler
+- Downgraded WTForms to 2.2.1 (from 3.0.0) to prevent issues due to different class imports
+
+Version 1.3.3           2021-12-21
+
+Fixed
+- Updated readme and about to include Pushover and MQTT
+- General module version update
+
+Version 1.3.2           2021-12-20
+
+Added
+- Basic MQTT support. 
+- Added login/logout and websocket connect/disconnect events to MQTT.
+- Pushover cross platform push messages
+- Monthly energy consumption API call
+
+Fixed
+- Improved developer branch update check
+
+Version 1.3.1           2021-07-28
+
+Added
+- now listing all recorded energy meter entries, incl. seach on date and time
+- edit charge sessions
+- show graphs per charge session
+- notifications menu. Auto-dissapearing notifications readable in menu
+- start/stop charge sessions from rfid token list
+- token list row highlight and edit clickable
+- retry odometer read button on charge session page
+
+Fixed
+- default avatar if none set
+- OS info in settings
+- update urllib3 to 1.26.5
+- page title
+- menu link on small (mobile) screen
+- Charge sessions filter had rfid id and name in some occasionsß
+- White token name/id and icons in charge sessions highlight
+
+Version 1.3.0           2021-05-31
+
+Added
+- 2FA info button, local 2FA bypass per account on account page, command line script to disable 2FA for account
+- breadcrumbs removed
+- font awesome update to 1.15.3
+- vehicle connect icon, wakeup, and hide disconnected vehicle status, vehicle wakeup on data request (i.e. charge status on dashboard)
+- user avatar in menu bar, update menu structure, change user avatar in account page
+
+Fixed
+- Redirect after login
+- Request vehicle status update when enabling
+- Webupdate fix and added developer branch update
+
+Version 1.2.9           2021-05-06
+
+Fixed
+- Install from front-end failed on stopping the Oppleo service.
+- NOTE: Due to changes in the call to the install script (flaskRoutes.py) the install script cannot be run from the front end successfully. Run 'install/install.sh' from the command line in the '/home/pi/Oppleo' folder to apply this update succesfully.
+
+
+Version 1.2.8           2021-05-06
+
+Fixed
+- For development disabled threads re-enabled
+
+
+Version 1.2.7           2021-05-05
+
+Fixed
+- Update version number fixed.
+- NOTE: Due to changes in the version update check Oppleo will not detect this update from the web gui. Run 'install/install.sh' (twice!) from the command line in the '/home/pi/Oppleo' folder to force this update.
+- NOTE: Due to changes in the install script (install.sh uses a different requirements.txt filename) the install script must be run twice. This first run will install the correct install.sh script, the second run will run that correct script.
+
+
+Version 1.2.6           2021-05-05
+
+Fixed
+- requirements.txt fixed.
+
+
+Version 1.2.5           2021-05-05
+
+Added
+- Two Factor Authentication (2FA) with Time-based One-time Password Algorithm (TOTP; specified in RFC 6238). i.e. Google Authenticator App. Currently no 2FA on restart/switch off.
+- Account page.
+
+
+Version 1.2.4           2021-04-29
+
+Fixed
+- Removed github date from settings (in master)
+
+
+Version 1.2.3           2021-04-29
+
+Added
+- Software version info when on developer branch
+
+
+Version 1.2.2           2021-04-23
+
+Added
+- Version information in changelog, available on settings page.
+
+
+Version 1.2.1           2021-04-22
+
+Fixed
+- Faster initial vehicle status.
+
+
+Version 1.2.0       2021-04-14
+
+Added
+- vehicle status on dashboard, configurable on/off. Shows vehicle charge states. Tesla only for now.
+  Battery percentage reflected in icon op vehicle status
+- timeout on all TeslaAPI session/request calls to stop freeze
+
+Fixed
+- Connection timeout and exception handling.
+  - Exceptions on connection issues, for example with active VPN. When sending PushMessage ot getting http requests for TeslaAPI.
+- sync issue with TeslaAPI token renew
+  - token refresh left other users (threads) with stale tokens (odometer vs dashboard update).
+  - token mediator singleton handing out tokens (thread locked)
+- vehicle status small screen hide last update date to fit
+- fix backups created after restart while not due
+- local rfid enables dashboard but keeps WACHTEN on first gauge
+- local rfid led not on green
+- renamed carcharger references to oppleo
+- wrong month when adding off peak holiday date (0-based to 1-based translation missing)
+- retry (3 times) in modbus reader to overcome incidential wrong reads. 
+
+
+Version 1.1.0 2021-03-16
+
+Added
+- Oppleo creates backups! Includes the database (postgress only), ini file, and update logs. Including copy to offsite (smb share), and pruning to a maximum number of backups
+
+Fixed
+- led control overhaul. Fixed and colors improved. More robust led pwm setup.
+- GenericUtil removed
+- fixed local rfid reader issue
+- fix tooltip over Delete empty charge session button
+- fix L2 Volts in 'verbruik' table where copy of L1
+
