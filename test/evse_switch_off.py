@@ -1,20 +1,31 @@
 #!/usr/bin/env python
-# https://raspberrytips.nl/kaarslicht-pwm-raspberry-pi/
+# Cross-platform GPIO output for EVSE switch
 
-import RPi.GPIO as GPIO
+import sys
+from gpiozero import OutputDevice, Device
+from gpiozero.pins.mock import MockFactory
 
-GPIO.setwarnings(False)
+# Detect if running on Raspberry Pi
+def is_raspberry_pi():
+    try:
+        with open("/proc/cpuinfo") as f:
+            cpuinfo = f.read()
+        return "BCM" in cpuinfo or "Raspberry Pi" in cpuinfo
+    except FileNotFoundError:
+        return False
 
-switch_pin = 5	# GPIO5 pin 29
+ON_PI = is_raspberry_pi()
 
-GPIO.setmode(GPIO.BCM) # BCM mode
+# Use mock pins if not on a Pi
+if not ON_PI:
+    print("Not on a Raspberry Pi. Using mock GPIO pins.")
+    Device.pin_factory = MockFactory()
 
-GPIO.setup(switch_pin, GPIO.OUT, initial=GPIO.HIGH)
+switch_pin = 5  # GPIO5 (BCM numbering)
+switch = OutputDevice(switch_pin, active_high=True, initial_value=True)
 
-# Setting the output to HIGH disables the charging. Keep high.
-GPIO.output(switch_pin, GPIO.HIGH)
+# Setting the output HIGH disables charging
+switch.on()
+print("Switch set HIGH. Charging disabled.")
 
-print(" Done.")
-
-# Don't do cleanup, messes with the output so it doesn't stay high!
-# GPIO.cleanup(switch_pin)
+# Do NOT call cleanup; we want the pin to stay HIGH

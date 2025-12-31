@@ -1,38 +1,55 @@
 #!/usr/bin/env python
-# https://raspberrytips.nl/kaarslicht-pwm-raspberry-pi/
+# Candle-flicker buzzer cross-platform
+# Uses PWM on Raspberry Pi, OutputDevice mock elsewhere
 
-import random, time
-import RPi.GPIO as GPIO
+import time
+import random
+from gpiozero import PWMOutputDevice, OutputDevice
+from gpiozero import Device
+from gpiozero.pins.mock import MockFactory
 
-buzzer = 23 # PIN 16/ GPIO23
+# Detect if running on Raspberry Pi
+def is_raspberry_pi():
+    try:
+        with open("/proc/cpuinfo", "r") as f:
+            cpuinfo = f.read()
+        return "BCM" in cpuinfo or "Raspberry Pi" in cpuinfo
+    except FileNotFoundError:
+        return False
 
-GPIO.setwarnings(False) # Ignore warning for now
-GPIO.setmode(GPIO.BCM) # Use physical pin numbering
+ON_PI = is_raspberry_pi()
 
+# Setup GPIO
+if not ON_PI:
+    print("Not on Raspberry Pi, using mock GPIO pins.")
+    Device.pin_factory = MockFactory()
 
-GPIO.setup(buzzer, GPIO.OUT, initial=GPIO.LOW)
+# Select appropriate device class
+DeviceClass = PWMOutputDevice if ON_PI else OutputDevice
 
-GPIO.output(buzzer, GPIO.HIGH) # Turn on
-time.sleep(0.05)
-GPIO.output(buzzer, GPIO.LOW) # Turn off
-time.sleep(1) # Sleep for 1 second
+# GPIO23 (BCM numbering)
+buzzer = DeviceClass(23)
 
-GPIO.output(buzzer, GPIO.HIGH) # Turn on
-time.sleep(0.1)
-GPIO.output(buzzer, GPIO.LOW) # Turn off
-time.sleep(0.05) 
-GPIO.output(buzzer, GPIO.HIGH) # Turn on
-time.sleep(0.1)
-GPIO.output(buzzer, GPIO.LOW) # Turn off
+def flicker_pulse():
+    """Random flicker pulse for buzzer"""
+    if ON_PI:
+        # PWM: random duty cycle
+        intensity = random.uniform(0.2, 0.8)
+        duration = random.uniform(0.03, 0.12)
+        buzzer.value = intensity
+        time.sleep(duration)
+        buzzer.value = 0
+    else:
+        # Mock or non-PWM: just on/off
+        buzzer.on()
+        time.sleep(random.uniform(0.03, 0.12))
+        buzzer.off()
+    time.sleep(random.uniform(0.05, 0.15))
 
-time.sleep(1) 
-
-GPIO.output(buzzer, GPIO.HIGH) # Turn on
-time.sleep(0.05)
-GPIO.output(buzzer, GPIO.LOW) # Turn off
-time.sleep(0.05)
-GPIO.output(buzzer, GPIO.HIGH) # Turn on
-time.sleep(0.05)
-GPIO.output(buzzer, GPIO.LOW) # Turn off
-
-GPIO.cleanup(buzzer)
+try:
+    print("Starting candle-flicker buzzer. Press Ctrl+C to stop.")
+    while True:
+        flicker_pulse()
+except KeyboardInterrupt:
+    buzzer.off()
+    print("\nStopped.")

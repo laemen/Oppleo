@@ -1,52 +1,66 @@
-#!/usr/bin/env python
-# https://raspberrytips.nl/kaarslicht-pwm-raspberry-pi/
+#!/usr/bin/env python3
+"""
+Cross-platform LED pulse (candle light style) using gpiozero.
+Uses real GPIO on Raspberry Pi and Mock pins elsewhere.
+"""
 
-import random, time
-import RPi.GPIO as GPIO
+import time
+import random
+from gpiozero import PWMLED, Device
+from gpiozero.pins.mock import MockFactory
 
-led_red = 13
-led_green = 12
-led_blue = 16
+# --- Detect Raspberry Pi ---
+def is_raspberry_pi():
+    try:
+        with open("/proc/cpuinfo") as f:
+            cpuinfo = f.read()
+        return "BCM" in cpuinfo or "Raspberry Pi" in cpuinfo
+    except FileNotFoundError:
+        return False
 
-led = 13
+ON_PI = is_raspberry_pi()
+if not ON_PI:
+    print("Not running on Raspberry Pi. Using mock GPIO pins.")
+    Device.pin_factory = MockFactory()
+
+# --- LED Setup (BCM pin numbers) ---
+led_red = PWMLED(13)
+led_green = PWMLED(12)
+led_blue = PWMLED(16)
+
+# Choose LED to pulse
+led = led_red
+
+# --- Pulse parameters ---
+pulse_value = 0
+pulse_millis = int(round(time.time() * 1000))
+pulse_up = True
+pulse_duty_cycle = 1  # 1s / 100 steps = 10ms per step
+pulse_min = 3
+pulse_max = 98
 
 def millis():
-   return int(round(time.time() * 1000))
+    return int(round(time.time() * 1000))
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(led, GPIO.OUT)
-
-pwm = GPIO.PWM(led, 100)
-RUNNING = True
-
-pulseLedValue = 0
-pulseLedMillis = 0
-pulseLedUp = True
-pulseLedDutyCycle = 1  # 1s / 100 steps = 10ms/step
-pulseLedMin = 3
-pulseLedMax = 98
-
-
-print ("Stop -> CTRL + C")
+print("Stop -> CTRL + C")
 
 try:
-   pwm.start(0)
-   while RUNNING:
-      if (millis() > (pulseLedMillis + ((pulseLedDutyCycle * 1000) / 100))):
-         if ((pulseLedUp and (pulseLedValue >= pulseLedMax)) or
-             ((not pulseLedUp) and (pulseLedValue <= pulseLedMin))):
-            pulseLedUp = not pulseLedUp
-         if (pulseLedUp):
-            pulseLedValue += 1
-         else:
-            pulseLedValue -= 1
-         pwm.ChangeDutyCycle(pulseLedValue)
-         print ("pulseLedValue = ", pulseLedValue)
-         pulseLedMillis = millis()
+    while True:
+        if millis() > (pulse_millis + ((pulse_duty_cycle * 1000) / 100)):
+            # Reverse direction at edges
+            if (pulse_up and pulse_value >= pulse_max) or (not pulse_up and pulse_value <= pulse_min):
+                pulse_up = not pulse_up
+
+            pulse_value = pulse_value + 1 if pulse_up else pulse_value - 1
+            led.value = pulse_value / 100  # gpiozero PWMLED uses 0..1
+            print(f"pulse_value = {pulse_value}")
+            pulse_millis = millis()
+
+        time.sleep(0.005)  # small delay to reduce CPU usage
 
 except KeyboardInterrupt:
-   running = False
+    print("Stopped by user")
 
 finally:
-   pwm.stop()
-   GPIO.cleanup(led)
+    led.off()
+    print("Clean exit")

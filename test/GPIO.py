@@ -1,47 +1,97 @@
-import RPi.GPIO as GPIO
+#!/usr/bin/env python3
+"""
+Cross-platform GPIO info script
+Prints pin modes, levels, and functions, using RPi.GPIO if available,
+otherwise using a mock.
+"""
 
-print("GPIO.BCM: {}".format(GPIO.BCM))
-print("GPIO.BOARD: {}".format(GPIO.BOARD))
+import sys
 
-print("GPIO.IN: {}".format(GPIO.IN))
-print("GPIO.OUT: {}".format(GPIO.OUT))
-print("GPIO.I2C: {}".format(GPIO.I2C))
-print("GPIO.SPI: {}".format(GPIO.SPI))
-print("GPIO.HARD_PWM: {}".format(GPIO.HARD_PWM))
-print("GPIO.SERIAL: {}".format(GPIO.SERIAL))
-print("GPIO.UNKNOWN: {}".format(GPIO.UNKNOWN))
+try:
+    import RPi.GPIO as GPIO
+    ON_PI = True
+except (ImportError, RuntimeError):
+    print("RPi.GPIO not available. Using mock GPIO.")
+    ON_PI = False
 
-print("GPIO.LOW: {}".format(GPIO.LOW))
-print("GPIO.HIGH: {}".format(GPIO.HIGH))
+    # --- Mock GPIO constants ---
+    class MockGPIO:
+        BCM = 11
+        BOARD = 10
 
-print("GPIO.PUD_DOWN: {}".format(GPIO.PUD_DOWN))
-print("GPIO.PUD_UP: {}".format(GPIO.PUD_UP))
+        IN = 0
+        OUT = 1
+        I2C = 2
+        SPI = 3
+        HARD_PWM = 4
+        SERIAL = 5
+        UNKNOWN = -1
 
-print("GPIO.RISING: {}".format(GPIO.RISING))
-print("GPIO.FALLING: {}".format(GPIO.FALLING))
-print("GPIO.BOTH: {}".format(GPIO.BOTH))
+        LOW = 0
+        HIGH = 1
 
-print("GPIO.RPI_INFO: {}".format(GPIO.RPI_INFO))
-print("GPIO.RPI_REVISION: {}".format(GPIO.RPI_REVISION))
-print("GPIO.VERSION: {}".format(GPIO.VERSION))
+        PUD_DOWN = 0
+        PUD_UP = 1
 
-gpio_functions = { GPIO.IN:'Input',
-   	               GPIO.OUT:'Output',
-                   GPIO.I2C:'I2C',
-                   GPIO.HARD_PWM:'SPI',
-                   GPIO.HARD_PWM:'HARD_PWM',
-                   GPIO.SERIAL:'Serial',
-                   GPIO.UNKNOWN:'Unknown'
-                 }
+        RISING = 0
+        FALLING = 1
+        BOTH = 2
 
-print("GPIO.gpio_function values:")
-for key in gpio_functions.keys():
-	print(" {}: {}".format(key, gpio_functions[key]))
+        RPI_INFO = {'Mock': True}
+        RPI_REVISION = 0
+        VERSION = 'mock'
 
-print("Current GPIO pin config:")
-#gpio_pins = (2,3,4,7,8,9,10,11,14,15,17,18,22,23,24,25,27)
-gpio_pins = range(0,40)
+        _pin_modes = {}
+
+        @staticmethod
+        def gpio_function(pin):
+            # Return previously set mode, default IN
+            return MockGPIO._pin_modes.get(pin, MockGPIO.IN)
+
+        @staticmethod
+        def setup(pin, mode, pull_up_down=None, initial=None):
+            MockGPIO._pin_modes[pin] = mode
+
+    GPIO = MockGPIO
+
+# --- Print GPIO constants ---
+print(f"GPIO.BCM: {GPIO.BCM}")
+print(f"GPIO.BOARD: {GPIO.BOARD}")
+print(f"GPIO.IN: {GPIO.IN}")
+print(f"GPIO.OUT: {GPIO.OUT}")
+print(f"GPIO.I2C: {GPIO.I2C}")
+print(f"GPIO.SPI: {GPIO.SPI}")
+print(f"GPIO.HARD_PWM: {GPIO.HARD_PWM}")
+print(f"GPIO.SERIAL: {GPIO.SERIAL}")
+print(f"GPIO.UNKNOWN: {GPIO.UNKNOWN}")
+print(f"GPIO.LOW: {GPIO.LOW}")
+print(f"GPIO.HIGH: {GPIO.HIGH}")
+print(f"GPIO.PUD_DOWN: {GPIO.PUD_DOWN}")
+print(f"GPIO.PUD_UP: {GPIO.PUD_UP}")
+print(f"GPIO.RISING: {GPIO.RISING}")
+print(f"GPIO.FALLING: {GPIO.FALLING}")
+print(f"GPIO.BOTH: {GPIO.BOTH}")
+print(f"GPIO.RPI_INFO: {GPIO.RPI_INFO}")
+print(f"GPIO.RPI_REVISION: {GPIO.RPI_REVISION}")
+print(f"GPIO.VERSION: {GPIO.VERSION}")
+
+gpio_functions = {
+    GPIO.IN: 'Input',
+    GPIO.OUT: 'Output',
+    GPIO.I2C: 'I2C',
+    GPIO.SPI: 'SPI',
+    GPIO.HARD_PWM: 'HARD_PWM',
+    GPIO.SERIAL: 'Serial',
+    GPIO.UNKNOWN: 'Unknown'
+}
+
+print("\nGPIO.gpio_function values:")
+for key, val in gpio_functions.items():
+    print(f" {key}: {val}")
+
+print("\nCurrent GPIO pin config:")
+gpio_pins = range(0, 40)
 for gpio_pin in gpio_pins:
-    print(" GPIO {} is an {}".format(gpio_pin,gpio_functions[GPIO.gpio_function(gpio_pin)]))
+    print(f" GPIO {gpio_pin} is an {gpio_functions.get(GPIO.gpio_function(gpio_pin), 'Unknown')}")
 
 print("Done!")
