@@ -445,7 +445,7 @@ class ChargerHandlerThread(object):
                                                             )
 
 
-            self.__logger.debug('.handle_charging() - Start charging light pulse')
+            # self.__logger.debug('.handle_charging() - Start charging light pulse')
             oppleoConfig.rgblcThread.charging = True
 
         else:

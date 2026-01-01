@@ -111,12 +111,11 @@ class EnergyModbusReader:
 
         return self.oppleoConfig.kWhMeterSerial
 
- 
-
 
     def getTotalKWHHValue(self):
         self.__logger.debug('Production environment, getting real data')
         return self.getProdTotalKWHHValue()
+
 
     def getMeasurementValue(self):
         self.__logger.debug('Production environment, getting real data')
@@ -180,7 +179,7 @@ class EnergyModbusReader:
         kWh = self.try_read_float_from_config( 'kWh', self.modbusConfig[MB.TOTAL_ENERGY] )
         Hz = self.try_read_float_from_config( 'hz', self.modbusConfig[MB.FREQ] )
 
-        return {
+        production_measurement = {
             "energy_device_id": self.energy_device_id,
             "kwh_l1": L1_kWh,
             "kwh_l2": L2_kWh,
@@ -197,6 +196,10 @@ class EnergyModbusReader:
             "kw_total": kWh,
             "hz": Hz
         }
+
+        self.__logger.info("Production measurement: {}".format(production_measurement))
+
+        return production_measurement
 
     """
         minimalmodbus.read_float raises:

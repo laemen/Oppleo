@@ -312,7 +312,7 @@ class EnergyDeviceMeasureModel(Base):
         return eme
 
 
-    def get_usage_since(self, energy_device_id, since_ts):
+    def get_usage_since(self, energy_device_id, since_ts) -> int:
         self.__logger.debug("get_usage_since() energy_device_id {} since_ts {}".format(energy_device_id, str(since_ts)))
         energy_at_ts = 0
         try:
