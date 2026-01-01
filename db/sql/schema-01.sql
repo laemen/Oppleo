@@ -120,10 +120,10 @@ INSERT INTO energy_device (
     'N',               -- parity (N=None, E=Even, O=Odd)
     1,                 -- stopbits
     0.05,              -- serial_timeout in seconds
-    true,              -- simulation enabled
+    false,             -- simulation enabled
     'rtu',             -- mode
     false,             -- close_port_after_each_call
-    'SDM630v2',         -- modbus_config
+    'SDM630v2',        -- modbus_config
     false              -- device_enabled
 );
 
