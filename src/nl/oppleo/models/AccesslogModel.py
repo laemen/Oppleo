@@ -83,7 +83,8 @@ class AccesslogModel(Base):
                 alm = db_session.query(AccesslogModel) \
                                          .all()
                 for al in alm:
-                    db_session.expunge(al)                
+                    if al is not None:
+                        db_session.expunge(al)                
                 return alm
         except InvalidRequestError as e:
             AccesslogModel.__logger.error("Could not query from {} table in database".format(AccesslogModel.__tablename__ ), exc_info=True)

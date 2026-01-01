@@ -111,7 +111,8 @@ class ChargeSessionModel(Base):
                 csm = db_session.query(ChargeSessionModel) \
                                 .all()
                 for cs in csm:
-                    db_session.expunge(cs)
+                    if cs is not None:
+                        db_session.expunge(cs)
                 return csm
         except InvalidRequestError as e:
             ChargeSessionModel.__logger.error("Could not query from {} table in database".format(ChargeSessionModel.__tablename__ ), exc_info=True)
@@ -135,7 +136,8 @@ class ChargeSessionModel(Base):
                     csList = csList.filter(ChargeSessionModel.energy_device_id == energy_device_id)
                 csList = csList.order_by(asc(ChargeSessionModel.id))
                 for cs in csList:
-                    db_session.expunge(cs)
+                    if cs is not None:
+                        db_session.expunge(cs)
                 return csList
         except InvalidRequestError as e:
             ChargeSessionModel.__logger.error("Could not query from {} table in database".format(ChargeSessionModel.__tablename__ ), exc_info=True)
@@ -155,7 +157,8 @@ class ChargeSessionModel(Base):
                                 .limit(1) \
                                 .all()
                 for cs in csm:
-                    db_session.expunge(cs)
+                    if cs is not None:
+                        db_session.expunge(cs)
                 return None if len(csm) < 1 else csm[0]
         except InvalidRequestError as e:
             ChargeSessionModel.__logger.error("Could not query from {} table in database".format(ChargeSessionModel.__tablename__ ), exc_info=True)
@@ -182,7 +185,8 @@ class ChargeSessionModel(Base):
                                 .filter(ChargeSessionModel.tariff == tariff) \
                                 .order_by(desc(ChargeSessionModel.id)) \
                                 .first()
-                db_session.expunge(csm)
+                if csm is not None:
+                    db_session.expunge(csm)
                 return csm
         except InvalidRequestError as e:
             ChargeSessionModel.__logger.error("Could not query from {} table in database".format(ChargeSessionModel.__tablename__ ), exc_info=True)
@@ -224,7 +228,8 @@ class ChargeSessionModel(Base):
                 latest_charge_session = db_session.query(ChargeSessionModel) \
                                                 .filter(ChargeSessionModel.id == qry_latest_id) \
                                                 .first()
-                db_session.expunge(latest_charge_session)
+                if latest_charge_session is not None:
+                    db_session.expunge(latest_charge_session)
                 return latest_charge_session
         except InvalidRequestError as e:
             ChargeSessionModel.__logger.error("Could not query from {} table in database".format(ChargeSessionModel.__tablename__ ), exc_info=True)
@@ -276,8 +281,8 @@ class ChargeSessionModel(Base):
                 if (latest is None or latest.end_time != None):
                     # No recent open charge session
                     return None
-                
-                db_session.expunge(latest)
+                if latest is not None:
+                    db_session.expunge(latest)
                 return latest
                 
         except InvalidRequestError as e:
@@ -301,7 +306,8 @@ class ChargeSessionModel(Base):
                                 .filter(ChargeSessionModel.end_time == None) \
                                 .order_by(desc(ChargeSessionModel.start_time)) \
                                 .first()    # Call first to return an object instead of an array
-                db_session.expunge(open_charge_session_for_device)
+                if open_charge_session_for_device is not None:
+                    db_session.expunge(open_charge_session_for_device)
                 return open_charge_session_for_device
         except InvalidRequestError as e:
             ChargeSessionModel.__logger.error("Could not query from {} table in database".format(ChargeSessionModel.__tablename__ ), exc_info=True)
@@ -323,7 +329,8 @@ class ChargeSessionModel(Base):
                                 .filter(ChargeSessionModel.end_time == None) \
                                 .order_by(desc(ChargeSessionModel.start_time)) \
                                 .first()    # Call first to return an object instead of an array
-                db_session.expunge(open_charge_session_for_device)
+                if open_charge_session_for_device is not None:
+                    db_session.expunge(open_charge_session_for_device)
                 return open_charge_session_for_device != None
         except InvalidRequestError as e:
             ChargeSessionModel.__logger.error("Could not query from {} table in database".format(ChargeSessionModel.__tablename__ ), exc_info=True)
@@ -473,7 +480,8 @@ class ChargeSessionModel(Base):
                                                 .order_by(desc(ChargeSessionModel.__table__.c.start_time)) \
                                                 .limit(n) \
                                                 .all()
-                db_session.expunge(csm)
+                if csm is not None:
+                    db_session.expunge(csm)
                 return csm
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -539,7 +547,8 @@ class ChargeSessionModel(Base):
                                             .order_by(desc(ChargeSessionModel.__table__.c.start_time)) \
                                             .limit(n) \
                                             .all()
-                db_session.expunge(csm)
+                if csm is not None:
+                    db_session.expunge(csm)
                 return csm
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -611,7 +620,8 @@ class ChargeSessionModel(Base):
                                             .group_by( extract('year', ChargeSessionModel.end_time),            \
                                                     extract('month', ChargeSessionModel.end_time))              \
                                             .all()
-                db_session.expunge(csm)
+                if csm is not None:
+                    db_session.expunge(csm)
                 return csm
 
         except InvalidRequestError as e:

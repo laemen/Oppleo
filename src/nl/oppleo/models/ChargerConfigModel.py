@@ -184,7 +184,8 @@ class ChargerConfigModel(Base):
                 ccm = db_session.query(ChargerConfigModel) \
                                 .order_by(desc(ChargerConfigModel.__table__.c.modified_at)) \
                                 .first()
-                db_session.expunge(ccm)
+                if ccm is not None:
+                    db_session.expunge(ccm)
                 # Detach (not transient) from database, allows saving in other Threads
                 # https://docs.sqlalchemy.org/en/14/orm/session_api.html#sqlalchemy.orm.make_transient_to_detached
                 # make_transient(ccm)
@@ -209,7 +210,8 @@ class ChargerConfigModel(Base):
                 ccm = db_session.query(ChargerConfigModel) \
                                 .order_by(desc(ChargerConfigModel.__table__.c.modified_at))
                 for cm in ccm:
-                    db_session.expunge(cm)
+                    if cm is not None:
+                        db_session.expunge(cm)
                 return ccm
         except InvalidRequestError as e:
             ChargerConfigModel.__logger.error("Could not query from {} table in database".format(ChargerConfigModel.__tablename__ ), exc_info=True)

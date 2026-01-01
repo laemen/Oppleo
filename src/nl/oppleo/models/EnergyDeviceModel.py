@@ -114,7 +114,8 @@ class EnergyDeviceModel(Base):
                                     .filter(EnergyDeviceModel.energy_device_id == energy_device_id)    \
                                     .order_by(desc(EnergyDeviceModel.energy_device_id)) \
                                     .first()
-                db_session.expunge(edm)
+                if edm is not None:
+                    db_session.expunge(edm)
                 return edm
         except InvalidRequestError as e:
             EnergyDeviceModel.__logger.error("Could not get energy device from table {} in database ({})".format(EnergyDeviceModel.__tablename__, str(e)), exc_info=True)

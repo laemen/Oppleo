@@ -93,7 +93,8 @@ class EnergyDeviceMeasureModel(Base):
                                 .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
                                 .limit(n) \
                                 .all()
-                db_session.expunge(edmm)
+                if edmm is not None:
+                    db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
             self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -118,7 +119,8 @@ class EnergyDeviceMeasureModel(Base):
                                     .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
                                     .limit(n) \
                                     .all()
-                db_session.expunge(edmm)
+                if edmm is not None:
+                    db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -136,7 +138,8 @@ class EnergyDeviceMeasureModel(Base):
                                     .filter(EnergyDeviceMeasureModel.created_at <= until_ts) \
                                     .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
                                     .all()
-                db_session.expunge(edmm)
+                if edmm is not None:
+                    db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -154,7 +157,8 @@ class EnergyDeviceMeasureModel(Base):
                                     EnergyDeviceMeasureModel.created_at >= ts if asc else EnergyDeviceMeasureModel.created_at <= ts
                                     ) \
                                 .scalar()
-                db_session.expunge(edmm)
+                if edmm is not None:
+                    db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -205,7 +209,8 @@ class EnergyDeviceMeasureModel(Base):
                                     .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
                                     .offset(offset) \
                                     .limit(limit)
-                db_session.expunge(edmm)
+                if edmm is not None:
+                    db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -215,13 +220,12 @@ class EnergyDeviceMeasureModel(Base):
             raise DbException("Could not query from {} table in database".format(self.__tablename__ ))
 
 
-    def get_count(self):
+    def get_count(self) -> int:
 
         try:
             with DbSession() as db_session:
                 rows = db_session.query(func.count(EnergyDeviceMeasureModel.id)).scalar()
-                db_session.expunge(rows)
-                return rows
+                return len(rows)
 
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -267,7 +271,8 @@ class EnergyDeviceMeasureModel(Base):
                     lastMonthReadingTimestamps.append( timestamp.created_at )
                 emeTs2 = emeTs2.filter( EnergyDeviceMeasureModel.created_at.in_( lastMonthReadingTimestamps ) ).all()
                 for emee in emeTs2:
-                    db_session.expunge(emee)
+                    if emee is not None:
+                        db_session.expunge(emee)
 
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -301,7 +306,8 @@ class EnergyDeviceMeasureModel(Base):
                                         .filter(EnergyDeviceMeasureModel.created_at <= since_ts) \
                                         .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
                                         .first()
-                db_session.expunge(energy_at_ts)
+                if energy_at_ts is not None:
+                    db_session.expunge(energy_at_ts)
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
@@ -333,7 +339,8 @@ class EnergyDeviceMeasureModel(Base):
                                 .filter(EnergyDeviceMeasureModel.a_l3 == 0) \
                                 .order_by(EnergyDeviceMeasureModel.created_at.asc()) \
                                 .first()
-                db_session.expunge(edmm)
+                if edmm is not None:
+                    db_session.expunge(edmm)
                 return edmm.created_at if edmm is not None else None 
         except InvalidRequestError as e:
             EnergyDeviceMeasureModel.__logger.error("Could not query from {} table in database".format(EnergyDeviceMeasureModel.__tablename__ ), exc_info=True)

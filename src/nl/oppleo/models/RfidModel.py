@@ -162,7 +162,8 @@ class RfidModel(Base):
                 rfidm = db_session.query(RfidModel) \
                                   .all()
                 for rfid_model in rfidm:
-                    db_session.expunge(rfid_model)
+                    if rfid_model is not None:
+                        db_session.expunge(rfid_model)
             return rfidm
         except InvalidRequestError as e:
             RfidModel.__logger.error("Could not query from table {} in database".format(RfidModel.__tablename__), exc_info=True)
@@ -179,7 +180,8 @@ class RfidModel(Base):
                 rfidm = db_session.query(RfidModel) \
                                 .filter(RfidModel.rfid == str(rfid)) \
                                 .first()
-                db_session.expunge(rfidm)
+                if rfidm is not None:
+                    db_session.expunge(rfidm)
                 return rfidm
         except InvalidRequestError as e:
             RfidModel.__logger.error("Could not query from {} table in database".format(RfidModel.__tablename__ ), exc_info=True)

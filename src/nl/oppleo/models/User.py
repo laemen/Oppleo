@@ -51,7 +51,8 @@ class User(Base):
                 user = db_session.query(User) \
                                 .filter(User.username == username) \
                                 .first()
-                db_session.expunge(user)
+                if user is not None:
+                    db_session.expunge(user)
                 return user
         except InvalidRequestError as e:
             User.__logger.error("Could not query {} table in database".format(User.__tablename__ ), exc_info=True)
@@ -124,7 +125,8 @@ class User(Base):
                 # Should be only one
                 userList = db_session.query(User).all()
                 for user in userList:
-                    db_session.expunge(user)
+                    if user is not None:
+                        db_session.expunge(user)
                 return userList
         except Exception as e:
             User.__logger.error("Could not query to {} table in database".format(User.__tablename__ ), exc_info=True)
