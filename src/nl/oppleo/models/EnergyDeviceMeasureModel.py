@@ -122,10 +122,11 @@ class EnergyDeviceMeasureModel(Base):
                                     .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
                                     .limit(n) \
                                     .all()
-                if edmm is not None:
-                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
-                        getattr(edmm, attr.key)
-                    db_session.expunge(edmm)
+                for edm in edmm:
+                    if edm is not None:
+                        for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                            getattr(edm, attr.key)
+                        db_session.expunge(edm)
                 return edmm
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -143,10 +144,11 @@ class EnergyDeviceMeasureModel(Base):
                                     .filter(EnergyDeviceMeasureModel.created_at <= until_ts) \
                                     .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
                                     .all()
-                if edmm is not None:
-                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
-                        getattr(edmm, attr.key)
-                    db_session.expunge(edmm)
+                for edm in edmm:
+                    if edm is not None:
+                        for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                            getattr(edm, attr.key)
+                        db_session.expunge(edm)
                 return edmm
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -208,16 +210,19 @@ class EnergyDeviceMeasureModel(Base):
                                     .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
                                     .order_by(asc(orderColumn) if orderDir=='asc' else desc(orderColumn)) \
                                     .offset(offset) \
-                                    .limit(limit)
+                                    .limit(limit) \
+                                    .all()
                 else: 
                     edmm = db_session.query(EnergyDeviceMeasureModel) \
                                     .filter(EnergyDeviceMeasureModel.energy_device_id == energy_device_id) \
                                     .offset(offset) \
-                                    .limit(limit)
-                if edmm is not None:
-                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
-                        getattr(edmm, attr.key)
-                    db_session.expunge(edmm)
+                                    .limit(limit) \
+                                    .all()
+                for edm in edmm: 
+                    if edm is not None:
+                        for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                            getattr(edm, attr.key)
+                        db_session.expunge(edm)
                 return edmm
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -232,7 +237,7 @@ class EnergyDeviceMeasureModel(Base):
         try:
             with DbSession() as db_session:
                 rows = db_session.query(func.count(EnergyDeviceMeasureModel.id)).scalar()
-                return int(rows)
+                return rows # returns een int van count()
 
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -270,7 +275,8 @@ class EnergyDeviceMeasureModel(Base):
                         .group_by( \
                             func.extract( "year", EnergyDeviceMeasureModel.created_at ), \
                             func.extract( "month", EnergyDeviceMeasureModel.created_at ) \
-                            )
+                            ) \
+                        .all()
                 # Add row data
                 emeTs2 = db_session.query( EnergyDeviceMeasureModel ).order_by( asc( EnergyDeviceMeasureModel.created_at ) )
                 lastMonthReadingTimestamps = []
