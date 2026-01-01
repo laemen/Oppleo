@@ -622,7 +622,7 @@ class HomeAssistantMqttHandlerThread(object, metaclass=Singleton):
         data = {}
         data['topic'] = topic
         data['message'] = message
-
+        is_published = False
         try:
             homeAssistantMqttMessageInfo = self.mqttClient.publish(topic=topic, payload=message)
             if notify:
@@ -635,9 +635,10 @@ class HomeAssistantMqttHandlerThread(object, metaclass=Singleton):
                 )            
             if waitForPublish:
                 homeAssistantMqttMessageInfo.wait_for_publish(timeout=(timeout/1000))
+            is_published = homeAssistantMqttMessageInfo.is_published()
         except (ValueError, TypeError, RuntimeError) as e:
             return False
-        return homeAssistantMqttMessageInfo.is_published()
+        return is_published
 
 
     # Callback from MeasureElectricityUsageThread with updated EnergyDeviceMeasureModel
