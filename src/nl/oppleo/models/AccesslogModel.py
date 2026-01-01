@@ -8,7 +8,7 @@ from marshmallow import fields, Schema
 from nl.oppleo.models.Base import Base, DbSession
 from nl.oppleo.exceptions.Exceptions import DbException
 
-from sqlalchemy import orm, Column, Integer, String, Boolean, DateTime
+from sqlalchemy import orm, Column, Integer, String, Boolean, DateTime, inspect
 from sqlalchemy.exc import InvalidRequestError
 
 
@@ -84,6 +84,8 @@ class AccesslogModel(Base):
                                          .all()
                 for al in alm:
                     if al is not None:
+                        for attr in inspect(AccesslogModel).mapper.column_attrs:
+                            getattr(al, attr.key)
                         db_session.expunge(al)                
                 return alm
         except InvalidRequestError as e:

@@ -5,7 +5,7 @@ from marshmallow import fields, Schema
 from nl.oppleo.models.Base import Base, DbSession
 from nl.oppleo.exceptions.Exceptions import DbException
 
-from sqlalchemy import orm, func, Column, String, Integer, Boolean, Float, desc
+from sqlalchemy import orm, func, Column, String, Integer, Boolean, Float, desc, inspect
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm.session import make_transient
 
@@ -115,6 +115,8 @@ class EnergyDeviceModel(Base):
                                     .order_by(desc(EnergyDeviceModel.energy_device_id)) \
                                     .first()
                 if edm is not None:
+                    for attr in inspect(EnergyDeviceModel).mapper.column_attrs:
+                        getattr(edm, attr.key)
                     db_session.expunge(edm)
                 return edm
         except InvalidRequestError as e:

@@ -8,7 +8,7 @@ from marshmallow import fields, Schema
 from nl.oppleo.models.Base import Base, DbSession
 from nl.oppleo.exceptions.Exceptions import DbException
 
-from sqlalchemy import orm, Column, String, Boolean, DateTime
+from sqlalchemy import orm, Column, String, Boolean, DateTime, inspect
 from sqlalchemy.exc import InvalidRequestError
 
 from nl.oppleo.config.OppleoSystemConfig import OppleoSystemConfig
@@ -163,6 +163,8 @@ class RfidModel(Base):
                                   .all()
                 for rfid_model in rfidm:
                     if rfid_model is not None:
+                        for attr in inspect(RfidModel).mapper.column_attrs:
+                            getattr(rfid_model, attr.key)
                         db_session.expunge(rfid_model)
             return rfidm
         except InvalidRequestError as e:
@@ -181,6 +183,8 @@ class RfidModel(Base):
                                 .filter(RfidModel.rfid == str(rfid)) \
                                 .first()
                 if rfidm is not None:
+                    for attr in inspect(RfidModel).mapper.column_attrs:
+                        getattr(rfidm, attr.key)
                     db_session.expunge(rfidm)
                 return rfidm
         except InvalidRequestError as e:

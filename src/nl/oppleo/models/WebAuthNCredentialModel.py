@@ -5,7 +5,7 @@ import logging
 from marshmallow import fields, Schema
 from marshmallow.fields import Boolean, Integer
 
-from sqlalchemy import orm, Column, String, Float, DateTime, Integer, Boolean, Time, desc
+from sqlalchemy import orm, Column, String, Float, DateTime, Integer, Boolean, Time, desc, inspect
 from sqlalchemy.exc import InvalidRequestError
 """
 When saving an object in another Thread, the attached Session (DbSession) can be from the previous Thread. This causes issues.
@@ -156,6 +156,8 @@ class WebAuthNCredentialModel(Base):
                                                     .filter(WebAuthNCredentialModel.credential_id == str(credential_id)) \
                                                     .first()
                 if registeredCredential is not None:
+                    for attr in inspect(WebAuthNCredentialModel).mapper.column_attrs:
+                        getattr(registeredCredential, attr.key)
                     db_session.expunge(registeredCredential)
                 return registeredCredential
         except InvalidRequestError as e:
@@ -267,6 +269,8 @@ class WebAuthNCredentialModel(Base):
                                                     .all()
                 for credential in credentialRegistrations:
                     if credential is not None:
+                        for attr in inspect(WebAuthNCredentialModel).mapper.column_attrs:
+                            getattr(credential, attr.key)
                         db_session.expunge(credential)
                 return credentialRegistrations
         except InvalidRequestError as e:
@@ -317,6 +321,8 @@ class WebAuthNCredentialModel(Base):
                                                     .filter(WebAuthNCredentialModel.credential_owner == str(username)) \
                                                     .first()
                 if credentialRegistration is not None:
+                    for attr in inspect(WebAuthNCredentialModel).mapper.column_attrs:
+                        getattr(credentialRegistration, attr.key)
                     db_session.expunge(credentialRegistration)
                 return credentialRegistration
         except InvalidRequestError as e:

@@ -4,7 +4,7 @@ import logging
 
 from marshmallow import fields, Schema
 
-from sqlalchemy import orm, Column, Integer, String, DateTime, Float, asc, desc, func
+from sqlalchemy import orm, Column, Integer, String, DateTime, Float, asc, desc, func, inspect
 from sqlalchemy import MetaData, Table, select    # For fetchmany
 from sqlalchemy.orm import Query
 
@@ -94,6 +94,8 @@ class EnergyDeviceMeasureModel(Base):
                                 .limit(n) \
                                 .all()
                 if edmm is not None:
+                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                        getattr(edmm, attr.key)
                     db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
@@ -120,6 +122,8 @@ class EnergyDeviceMeasureModel(Base):
                                     .limit(n) \
                                     .all()
                 if edmm is not None:
+                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                        getattr(edmm, attr.key)
                     db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
@@ -139,6 +143,8 @@ class EnergyDeviceMeasureModel(Base):
                                     .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
                                     .all()
                 if edmm is not None:
+                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                        getattr(edmm, attr.key)
                     db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
@@ -158,6 +164,8 @@ class EnergyDeviceMeasureModel(Base):
                                     ) \
                                 .scalar()
                 if edmm is not None:
+                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                        getattr(edmm, attr.key)
                     db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
@@ -210,6 +218,8 @@ class EnergyDeviceMeasureModel(Base):
                                     .offset(offset) \
                                     .limit(limit)
                 if edmm is not None:
+                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                        getattr(edmm, attr.key)
                     db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
@@ -272,6 +282,8 @@ class EnergyDeviceMeasureModel(Base):
                 emeTs2 = emeTs2.filter( EnergyDeviceMeasureModel.created_at.in_( lastMonthReadingTimestamps ) ).all()
                 for emee in emeTs2:
                     if emee is not None:
+                        for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                            getattr(emee, attr.key)
                         db_session.expunge(emee)
 
         except InvalidRequestError as e:
@@ -307,6 +319,8 @@ class EnergyDeviceMeasureModel(Base):
                                         .order_by(desc(EnergyDeviceMeasureModel.created_at)) \
                                         .first()
                 if energy_at_ts is not None:
+                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                        getattr(energy_at_ts, attr.key)
                     db_session.expunge(energy_at_ts)
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -340,6 +354,8 @@ class EnergyDeviceMeasureModel(Base):
                                 .order_by(EnergyDeviceMeasureModel.created_at.asc()) \
                                 .first()
                 if edmm is not None:
+                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
+                        getattr(edmm, attr.key)
                     db_session.expunge(edmm)
                 return edmm.created_at if edmm is not None else None 
         except InvalidRequestError as e:

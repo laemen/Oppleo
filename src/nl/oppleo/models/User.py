@@ -1,6 +1,6 @@
 from typing import ClassVar, Union
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import orm, Column, String, Boolean
+from sqlalchemy import orm, Column, String, Boolean, inspect
 from sqlalchemy.exc import InvalidRequestError
 
 import logging
@@ -52,6 +52,8 @@ class User(Base):
                                 .filter(User.username == username) \
                                 .first()
                 if user is not None:
+                    for attr in inspect(User).mapper.column_attrs:
+                        getattr(user, attr.key)
                     db_session.expunge(user)
                 return user
         except InvalidRequestError as e:
@@ -126,6 +128,8 @@ class User(Base):
                 userList = db_session.query(User).all()
                 for user in userList:
                     if user is not None:
+                        for attr in inspect(User).mapper.column_attrs:
+                            getattr(user, attr.key)
                         db_session.expunge(user)
                 return userList
         except Exception as e:

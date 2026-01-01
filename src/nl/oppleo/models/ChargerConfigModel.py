@@ -5,7 +5,7 @@ from typing import ClassVar
 from marshmallow import fields, Schema
 from marshmallow.fields import Boolean, Integer
 
-from sqlalchemy import orm, Column, String, Float, DateTime, Integer, Boolean, Time, desc
+from sqlalchemy import orm, Column, String, Float, DateTime, Integer, Boolean, Time, desc, inspect
 from sqlalchemy.exc import InvalidRequestError
 """
 When saving an object in another Thread, the attached Session (DbSession) can be from the previous Thread. This causes issues.
@@ -185,6 +185,8 @@ class ChargerConfigModel(Base):
                                 .order_by(desc(ChargerConfigModel.__table__.c.modified_at)) \
                                 .first()
                 if ccm is not None:
+                    for attr in inspect(ChargerConfigModel).mapper.column_attrs:
+                        getattr(ccm, attr.key)
                     db_session.expunge(ccm)
                 # Detach (not transient) from database, allows saving in other Threads
                 # https://docs.sqlalchemy.org/en/14/orm/session_api.html#sqlalchemy.orm.make_transient_to_detached
@@ -211,6 +213,8 @@ class ChargerConfigModel(Base):
                                 .order_by(desc(ChargerConfigModel.__table__.c.modified_at))
                 for cm in ccm:
                     if cm is not None:
+                        for attr in inspect(ChargerConfigModel).mapper.column_attrs:
+                            getattr(cm, attr.key)
                         db_session.expunge(cm)
                 return ccm
         except InvalidRequestError as e:

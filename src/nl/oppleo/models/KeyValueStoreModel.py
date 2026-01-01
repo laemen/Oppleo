@@ -8,7 +8,7 @@ from marshmallow import fields, Schema
 from nl.oppleo.models.Base import Base, DbSession
 from nl.oppleo.exceptions.Exceptions import DbException
 
-from sqlalchemy import orm, Column, Integer, String, DateTime, UniqueConstraint, PrimaryKeyConstraint
+from sqlalchemy import orm, Column, Integer, String, DateTime, UniqueConstraint, PrimaryKeyConstraint, inspect
 from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlalchemy.exc import InvalidRequestError
@@ -105,6 +105,8 @@ class KeyValueStoreModel(Base):
                                 .filter(KeyValueStoreModel.key == key) \
                                 .first()
                 if kvsm is not None:
+                    for attr in inspect(KeyValueStoreModel).mapper.column_attrs:
+                        getattr(kvsm, attr.key)
                     db_session.expunge(kvsm)
                 return kvsm
         except InvalidRequestError as e:
@@ -125,6 +127,8 @@ class KeyValueStoreModel(Base):
                                 .all()
                 for kvs in kvsm:
                     if kvs is not None:
+                        for attr in inspect(KeyValueStoreModel).mapper.column_attrs:
+                            getattr(kvs, attr.key)
                         db_session.expunge(kvs)
                 return kvsm
         except InvalidRequestError as e:
@@ -144,6 +148,8 @@ class KeyValueStoreModel(Base):
                                 .all()
                 for kvs in kvsm:
                     if kvs is not None:
+                        for attr in inspect(KeyValueStoreModel).mapper.column_attrs:
+                            getattr(kvs, attr.key)
                         db_session.expunge(kvs)
                 return kvsm
         except InvalidRequestError as e:
@@ -162,6 +168,8 @@ class KeyValueStoreModel(Base):
                                 .all()
                 for rfid in rfidm:
                     if rfid is not None:
+                        for attr in inspect(KeyValueStoreModel).mapper.column_attrs:
+                            getattr(rfid, attr.key)
                         db_session.expunge(rfid)
             return rfidm
         except InvalidRequestError as e:

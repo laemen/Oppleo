@@ -7,7 +7,7 @@ from marshmallow import fields, Schema
 from datetime import datetime
 import logging
 
-from sqlalchemy import orm, func, Column, Integer, String, Float, DateTime, desc, asc, update, func, extract
+from sqlalchemy import orm, func, Column, Integer, String, Float, DateTime, desc, asc, update, func, extract, inspect
 from sqlalchemy.exc import InvalidRequestError
 
 from nl.oppleo.models.Base import Base, DbSession
@@ -112,6 +112,8 @@ class ChargeSessionModel(Base):
                                 .all()
                 for cs in csm:
                     if cs is not None:
+                        for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                            getattr(cs, attr.key)
                         db_session.expunge(cs)
                 return csm
         except InvalidRequestError as e:
@@ -137,6 +139,8 @@ class ChargeSessionModel(Base):
                 csList = csList.order_by(asc(ChargeSessionModel.id))
                 for cs in csList:
                     if cs is not None:
+                        for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                            getattr(cs, attr.key)
                         db_session.expunge(cs)
                 return csList
         except InvalidRequestError as e:
@@ -158,6 +162,8 @@ class ChargeSessionModel(Base):
                                 .all()
                 for cs in csm:
                     if cs is not None:
+                        for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                            getattr(cs, attr.key)
                         db_session.expunge(cs)
                 return None if len(csm) < 1 else csm[0]
         except InvalidRequestError as e:
@@ -186,6 +192,8 @@ class ChargeSessionModel(Base):
                                 .order_by(desc(ChargeSessionModel.id)) \
                                 .first()
                 if csm is not None:
+                    for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                        getattr(cs, attr.key)
                     db_session.expunge(csm)
                 return csm
         except InvalidRequestError as e:
@@ -229,6 +237,8 @@ class ChargeSessionModel(Base):
                                                 .filter(ChargeSessionModel.id == qry_latest_id) \
                                                 .first()
                 if latest_charge_session is not None:
+                    for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                        getattr(latest_charge_session, attr.key)
                     db_session.expunge(latest_charge_session)
                 return latest_charge_session
         except InvalidRequestError as e:
@@ -282,6 +292,8 @@ class ChargeSessionModel(Base):
                     # No recent open charge session
                     return None
                 if latest is not None:
+                    for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                        getattr(latest, attr.key)
                     db_session.expunge(latest)
                 return latest
                 
@@ -307,6 +319,8 @@ class ChargeSessionModel(Base):
                                 .order_by(desc(ChargeSessionModel.start_time)) \
                                 .first()    # Call first to return an object instead of an array
                 if open_charge_session_for_device is not None:
+                    for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                        getattr(open_charge_session_for_device, attr.key)
                     db_session.expunge(open_charge_session_for_device)
                 return open_charge_session_for_device
         except InvalidRequestError as e:
@@ -330,6 +344,8 @@ class ChargeSessionModel(Base):
                                 .order_by(desc(ChargeSessionModel.start_time)) \
                                 .first()    # Call first to return an object instead of an array
                 if open_charge_session_for_device is not None:
+                    for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                        getattr(open_charge_session_for_device, attr.key)
                     db_session.expunge(open_charge_session_for_device)
                 return open_charge_session_for_device != None
         except InvalidRequestError as e:
@@ -481,6 +497,8 @@ class ChargeSessionModel(Base):
                                                 .limit(n) \
                                                 .all()
                 if csm is not None:
+                    for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                        getattr(csm, attr.key)
                     db_session.expunge(csm)
                 return csm
         except InvalidRequestError as e:
@@ -548,6 +566,8 @@ class ChargeSessionModel(Base):
                                             .limit(n) \
                                             .all()
                 if csm is not None:
+                    for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                        getattr(csm, attr.key)
                     db_session.expunge(csm)
                 return csm
         except InvalidRequestError as e:
@@ -621,6 +641,8 @@ class ChargeSessionModel(Base):
                                                     extract('month', ChargeSessionModel.end_time))              \
                                             .all()
                 if csm is not None:
+                    for attr in inspect(ChargeSessionModel).mapper.column_attrs:
+                        getattr(csm, attr.key)
                     db_session.expunge(csm)
                 return csm
 

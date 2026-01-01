@@ -7,7 +7,7 @@ from collections import OrderedDict
 from marshmallow import fields, Schema
 from marshmallow.fields import Boolean
 
-from sqlalchemy import Column, Integer, Boolean, String, Time, orm, and_, or_, cast, Time, func
+from sqlalchemy import Column, Integer, Boolean, String, Time, orm, and_, or_, cast, Time, func, inspect
 from sqlalchemy.exc import InvalidRequestError
 
 from nl.oppleo.models.Base import Base, DbSession
@@ -146,6 +146,8 @@ class OffPeakHoursModel(Base):
                             .filter(OffPeakHoursModel.off_peak_start <= cast(timestamp, Time)) \
                             .filter(OffPeakHoursModel.off_peak_end >= cast(timestamp, Time))
                 if r is not None:
+                    for attr in inspect(OffPeakHoursModel).mapper.column_attrs:
+                        getattr(r, attr.key)
                     db_session.expunge(r)
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -180,6 +182,8 @@ class OffPeakHoursModel(Base):
                             .filter(OffPeakHoursModel.off_peak_start <= cast(timestamp, Time)) \
                             .filter(OffPeakHoursModel.off_peak_end >= cast(timestamp, Time))
                 if r is not None:
+                    for attr in inspect(OffPeakHoursModel).mapper.column_attrs:
+                        getattr(r, attr.key)
                     db_session.expunge(r)
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -230,6 +234,8 @@ class OffPeakHoursModel(Base):
                 r = db_session.query(OffPeakHoursModel) \
                               .all()
                 if r is not None:
+                    for attr in inspect(OffPeakHoursModel).mapper.column_attrs:
+                        getattr(r, attr.key)
                     db_session.expunge(r)
                 return r
         except InvalidRequestError as e:
@@ -249,6 +255,8 @@ class OffPeakHoursModel(Base):
                             .order_by(OffPeakHoursModel.off_peak_start.asc()) \
                             .all()
                 if r is not None:
+                    for attr in inspect(OffPeakHoursModel).mapper.column_attrs:
+                        getattr(r, attr.key)
                     db_session.expunge(r)
                 return r
         except InvalidRequestError as e:
