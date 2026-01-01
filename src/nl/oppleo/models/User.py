@@ -49,8 +49,8 @@ class User(Base):
             with DbSession() as db_session:
                 # Should be only one, return last modified
                 user = db_session.query(User) \
-                                .filter(User.username == username) \
-                                .first()
+                                 .filter(User.username == username) \
+                                 .first()
                 if user is not None:
                     for attr in inspect(User).mapper.column_attrs:
                         getattr(user, attr.key)
@@ -125,7 +125,8 @@ class User(Base):
         try:
             with DbSession() as db_session:
                 # Should be only one
-                userList = db_session.query(User).all()
+                userList = db_session.query(User) \
+                                     .all()
                 for user in userList:
                     if user is not None:
                         for attr in inspect(User).mapper.column_attrs:

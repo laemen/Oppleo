@@ -136,7 +136,8 @@ class ChargeSessionModel(Base):
                     csList = csList.filter(ChargeSessionModel.rfid == rfid)
                 if energy_device_id is not None:
                     csList = csList.filter(ChargeSessionModel.energy_device_id == energy_device_id)
-                csList = csList.order_by(asc(ChargeSessionModel.id))
+                csList = csList.order_by(asc(ChargeSessionModel.id)) \
+                               .all()
                 for cs in csList:
                     if cs is not None:
                         for attr in inspect(ChargeSessionModel).mapper.column_attrs:

@@ -144,7 +144,8 @@ class OffPeakHoursModel(Base):
                 r = db_session.query(OffPeakHoursModel) \
                             .filter(OffPeakHoursModel.weekday == OffPeakHoursModel.weekdayToEnStr(timestamp.weekday())) \
                             .filter(OffPeakHoursModel.off_peak_start <= cast(timestamp, Time)) \
-                            .filter(OffPeakHoursModel.off_peak_end >= cast(timestamp, Time))
+                            .filter(OffPeakHoursModel.off_peak_end >= cast(timestamp, Time)) \
+                            .first()
                 if r is not None:
                     for attr in inspect(OffPeakHoursModel).mapper.column_attrs:
                         getattr(r, attr.key)
@@ -180,7 +181,8 @@ class OffPeakHoursModel(Base):
                                 )
                                 ) \
                             .filter(OffPeakHoursModel.off_peak_start <= cast(timestamp, Time)) \
-                            .filter(OffPeakHoursModel.off_peak_end >= cast(timestamp, Time))
+                            .filter(OffPeakHoursModel.off_peak_end >= cast(timestamp, Time)) \
+                            .first()
                 if r is not None:
                     for attr in inspect(OffPeakHoursModel).mapper.column_attrs:
                         getattr(r, attr.key)

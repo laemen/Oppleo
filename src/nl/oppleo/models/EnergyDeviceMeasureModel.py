@@ -163,10 +163,6 @@ class EnergyDeviceMeasureModel(Base):
                                     EnergyDeviceMeasureModel.created_at >= ts if asc else EnergyDeviceMeasureModel.created_at <= ts
                                     ) \
                                 .scalar()
-                if edmm is not None:
-                    for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:
-                        getattr(edmm, attr.key)
-                    db_session.expunge(edmm)
                 return edmm
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
@@ -203,7 +199,7 @@ class EnergyDeviceMeasureModel(Base):
             raise DbException("Could not query from {} table in database".format(self.__tablename__ ))
 
 
-    def paginate(self, energy_device_id, offset:int=0, limit:int=0, orderColumn:Column=None, orderDir:str=None):
+    def paginate(self, energy_device_id, offset:int=0, limit:int=0, orderColumn:Column|None=None, orderDir:str=None):
         try:
             with DbSession() as db_session:
                 if orderColumn is not None:
@@ -279,7 +275,8 @@ class EnergyDeviceMeasureModel(Base):
                 lastMonthReadingTimestamps = []
                 for timestamp in emeTs:
                     lastMonthReadingTimestamps.append( timestamp.created_at )
-                emeTs2 = emeTs2.filter( EnergyDeviceMeasureModel.created_at.in_( lastMonthReadingTimestamps ) ).all()
+                emeTs2 = emeTs2.filter( EnergyDeviceMeasureModel.created_at.in_( lastMonthReadingTimestamps ) ) \
+                               .all()
                 for emee in emeTs2:
                     if emee is not None:
                         for attr in inspect(EnergyDeviceMeasureModel).mapper.column_attrs:

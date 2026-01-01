@@ -210,7 +210,8 @@ class ChargerConfigModel(Base):
 
                 # Should be only one, return last modified
                 ccm = db_session.query(ChargerConfigModel) \
-                                .order_by(desc(ChargerConfigModel.__table__.c.modified_at))
+                                .order_by(desc(ChargerConfigModel.__table__.c.modified_at)) \
+                                .all()
                 for cm in ccm:
                     if cm is not None:
                         for attr in inspect(ChargerConfigModel).mapper.column_attrs:
