@@ -227,13 +227,14 @@ class OffPeakHoursModel(Base):
     def get_all():
         try:
             with DbSession() as db_session:
-                r = db_session.query(OffPeakHoursModel) \
-                              .all()
-                if r is not None:
-                    for attr in inspect(OffPeakHoursModel).mapper.column_attrs:
-                        getattr(r, attr.key)
-                    db_session.expunge(r)
-                return r
+                all_rows = db_session.query(OffPeakHoursModel) \
+                                     .all()
+                for row in all_rows:
+                    if row is not None:
+                        for attr in inspect(OffPeakHoursModel).mapper.column_attrs:
+                            getattr(row, attr.key)
+                        db_session.expunge(row)                
+                return all_rows
         except InvalidRequestError as e:
             self.__logger.error("Could not query from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
