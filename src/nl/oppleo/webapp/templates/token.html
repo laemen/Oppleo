@@ -391,8 +391,8 @@
           } else {
             // Write modal text for make
             // UUUUUUU
-            $("h3#showVehicleApiAuthorizationModalLabel").html('Koppel <img src="/static/images/logo/'+make+'.png" style="max-width: 40px; max-height: 22px;"> '+jQuery.camelCase(make)+' account <span id="showVehicleApiAuthorizationdTitle"></span>')
-            $("img#vehicle_authorization_logo").attr("src","/static/images/logo/"+make+".png")
+            $("h3#showVehicleApiAuthorizationModalLabel").html('Koppel <img src="/static/images/logo/'+make.toLowerCase()+'.png" style="max-width: 40px; max-height: 22px;"> '+jQuery.camelCase(make)+' account <span id="showVehicleApiAuthorizationdTitle"></span>')
+            $("img#vehicle_authorization_logo").attr("src","/static/images/logo/"+make.toLowerCase()+".png")
             $("td#vehicle_authorization_intro").html("Geef de gebruikersnaam en het wachtwoord waarmee u inlogt op uw "+jQuery.camelCase(make)+" account.")
 
             $('button#add_remove_vehicle_api_authorization').on('click', function() {      
