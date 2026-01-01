@@ -165,7 +165,7 @@ class VehicleApi:
             # Establish account
             tpw = TeslaPyWrapper(email=rfid_model.api_account, rfid=rfid_model.rfid)
             if not tpw.isAuthorized(email=rfid_model.api_account):
-                tpw.teslaLogout()
+                tpw.logout()
             return tpw.isAuthorized(email=rfid_model.api_account)
 
         if rfid_model.vehicle_make == "Polestar":
