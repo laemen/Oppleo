@@ -8,10 +8,14 @@ import psutil
 import subprocess
 import sys
 import re
+import RPi.GPIO as GPIO
 
 from nl.oppleo.config.OppleoSystemConfig import OppleoSystemConfig
+from nl.oppleo.config.OppleoConfig import OppleoConfig
+from nl.oppleo.utils.ModulePresence import modulePresence
 
 oppleoSystemConfig = OppleoSystemConfig()
+oppleoConfig = OppleoConfig()
 
 class Raspberry(object):
     """
@@ -305,6 +309,100 @@ class Raspberry(object):
         return ctl
 
 
+    def gpioState(self):
+        global modulePresence
+        __logger = logging.getLogger(f"{__name__}")
+
+        __state = {}
+        __state['gpioAvailable'] = modulePresence.gpioAvailable
+        __state['gpioMode'] = oppleoConfig.gpioMode
+
+        FUNCTION_MAP = {
+            GPIO.IN: "IN",
+            GPIO.OUT: "OUT",
+            GPIO.ALT0: "ALT0",
+            GPIO.ALT1: "ALT1",
+            GPIO.ALT2: "ALT2",
+            GPIO.ALT3: "ALT3",
+            GPIO.ALT4: "ALT4",
+            GPIO.ALT5: "ALT5",
+        }
+
+        # Fysieke pinnen die GEEN GPIO zijn
+        POWER_PINS = {1, 2, 4, 17}     # 3V3 / 5V
+        GND_PINS   = {6, 9, 14, 20, 25, 30, 34, 39}
+
+        if modulePresence.gpioAvailable:
+            GPIO: GPIO = modulePresence.GPIO
+
+            """
+            Collects GPIO state for all BCM GPIO pins (0–27) using RPi.GPIO.
+
+            Returns:
+                dict: {
+                    pin_number: {
+                        "function": "IN" | "OUT" | "ALT0" | ... | "UNKNOWN",
+                        "level": "HIGH" | "LOW" | "UNKNOWN"
+                    }
+                }
+            """
+
+            if oppleoConfig.gpioMode == "BOARD":
+
+                for pin in range(1, 41):  # BOARD pins 1–40
+                    if pin in POWER_PINS:
+                        __state[pin] = {
+                            "function": "POWER",
+                            "level": "N/A"
+                        }
+                        continue
+
+                    if pin in GND_PINS:
+                        __state[pin] = {
+                            "function": "GND",
+                            "level": "N/A"
+                        }
+                        continue
+
+                    try:
+                        func = GPIO.gpio_function(pin)
+                        level = GPIO.input(pin)
+
+                        __state[pin] = {
+                            "function": FUNCTION_MAP.get(func, "UNKNOWN"),
+                            "level": "HIGH" if level else "LOW"
+                        }
+
+                    except RuntimeError:
+                        # Pin bestaat wel maar is niet beschikbaar / in gebruik
+                        __state[pin] = {
+                            "function": "UNKNOWN",
+                            "level": "UNKNOWN"
+                        }
+
+            if oppleoConfig.gpioMode == "BCM":
+
+                for pin in range(0, 28):  # BCM GPIOs 0–27
+                    try:
+                        func = GPIO.gpio_function(pin)
+                        level = GPIO.input(pin)
+
+                        __state[pin] = {
+                            "function": FUNCTION_MAP.get(func, "UNKNOWN"),
+                            "level": "HIGH" if level else "LOW"
+                        }
+
+                    except RuntimeError:
+                        # Pin is unavailable or reserved
+                        __state[pin] = {
+                            "function": "UNKNOWN",
+                            "level": "UNKNOWN"
+                        }
+
+        return __state
+
+
+
     def get_all(self):
         try:
             self.__logger.debug("get_all()")
@@ -326,6 +424,7 @@ class Raspberry(object):
         data['platform'] = self.getPlatformType()
         data['proc_pid'] = self.getPid()
         data['parent_pid'] = self.getPPid()
+        data['gpio'] = self.gpioState()
 
         if self.hasSystemCtl():
             data['systemctl'] = self.systemCtlStatus()
