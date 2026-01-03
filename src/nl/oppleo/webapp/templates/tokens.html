@@ -152,6 +152,14 @@
       )
     }
 
+    implementedVehicleMakeApiList = ['Tesla', 'Polestar']
+
+    function toCamelCase(str) {
+      return str
+        .toLowerCase()
+        .replace(/[-_\s]+(.)?/g, (_, c) => c ? c.toUpperCase() : "");
+    }
+
     var chargeSessionSocket = undefined
     function startWebSocket() {
       console.log(timestamp() + ' startWebSocket()')
@@ -415,7 +423,7 @@
             "sorting": false,
             "orderable": false,
             "render": function (data, type, row) {
-              if (row[7].toLowerCase() != 'tesla') {
+              if (implementedVehicleMakeApiList.includes( toCamelCase( row[7] ) ) ) {
                 return '<span data-toggle="tooltip" \
                               data-placement="bottom" \
                               data-html="true" \
