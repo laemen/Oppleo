@@ -45,8 +45,11 @@ class OppleoConfig(object, metaclass=Singleton):
     # useReloader = False
     # Factor to calculate km/h equivalent of Wh per km
     # Tesla is using 162, which matches the in-car screen
-    # Actual average over first 16.836 km on Tesla Model 3 is 181.8
+    # Actual average over first 16.836 km on 2019 Tesla Model 3 LR is 181.8
     # factor_Whkm = 162
+    # According to RDW the Electric usage (WLTP) of a 2019 Tesla Model 3 Long Range is 160 Wh/km
+    # According to RDW the Electric usage (WLTP) of a 2024 Tesla Model 3 Long Range is 140 Wh/km
+    # According to RDW the Electric usage (WLTP) of a 2021 Polestar 2 LRDM is 193 Wh/km
 
     # Number of seconds between consecutive kwh meter readouts (via modbus). Only changes will be stored in the 
     # usage table. Greater values will lead to lagging change detection. Smaller values take more processing.
