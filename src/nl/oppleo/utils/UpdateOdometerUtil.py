@@ -63,7 +63,7 @@ class UpdateOdometerUtil:
         self.__thread = oppleoConfig.appSocketIO.start_background_task(self.update_odometer)
 
 
-    def sendChargeSessionUpdate(self, event:str=None, data:str=None, namespace:str='/charge_session', public:bool=False):
+    def sendChargeSessionUpdate(self, event:str|None=None, data:dict|None=None, namespace:str='/charge_session', public:bool=False):
         self.__logger.debug('sendChargeSessionUpdate() - event:{}, data:{}'.format(event, data))
         if event is None or data is None:
             return
@@ -74,7 +74,6 @@ class UpdateOdometerUtil:
                 namespace='/charge_session',
                 public=public
             )            
-
 
 
     def update_odometer(self):
@@ -106,9 +105,10 @@ class UpdateOdometerUtil:
         retries = 0
         odometer = None
         while retries < 3 and odometer == None:
+            retries = retries +1
+            self.__logger.debug("update_odometer() - try # {} of 3...".format(retries))
             odometer = vApi.getOdometer(odoInKm=True)
             if odometer == None:
-                retries = retries +1
                 self.__logger.error("ODOMETER NOT OBTAINED - try # {} of 3...".format(retries))
 
         # Did the token still work?
@@ -217,26 +217,3 @@ class UpdateOdometerUtil:
                         self.sendChargeSessionUpdate(event='charge_session_data_update', data=charge_session.to_str())
 
 
-    @staticmethod
-    def copy_token_from_rfid_model_to_api(rfid_model, tesla_api):
-        tesla_api.access_token = rfid_model.api_access_token
-        tesla_api.token_type = rfid_model.api_token_type
-        tesla_api.created_at = rfid_model.api_created_at
-        tesla_api.expires_in = rfid_model.api_expires_in
-        tesla_api.refresh_token = rfid_model.api_refresh_token
-
-    @staticmethod
-    def copy_token_from_api_to_rfid_model(tesla_api, rfid_model):
-        rfid_model.api_access_token = tesla_api.access_token
-        rfid_model.api_token_type = tesla_api.token_type
-        rfid_model.api_created_at = tesla_api.created_at
-        rfid_model.api_expires_in = tesla_api.expires_in
-        rfid_model.api_refresh_token = tesla_api.refresh_token
-
-    @staticmethod
-    def clean_token_rfid_model(rfid_model):
-        rfid_model.api_access_token = None
-        rfid_model.api_token_type = None
-        rfid_model.api_created_at = None
-        rfid_model.api_expires_in = None
-        rfid_model.api_refresh_token = None

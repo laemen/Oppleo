@@ -1,5 +1,6 @@
 import sys
 import threading
+from threading import Event
 import time
 import logging
 from datetime import datetime, timedelta
@@ -47,17 +48,17 @@ class ChargerHandlerThread(object):
     counter = 0
     __rfidReader = None
 
-    def __init__(self, device, buzzer, evseOutput:EvseOutput=None, evseReader:EvseReader=None, appSocketIO:SocketIO=None):
+    def __init__(self, device, buzzer, evseOutput:EvseOutput|None=None, evseReader:EvseReader|None=None, appSocketIO:SocketIO|None=None):
         self.threadLock = threading.Lock()
         self.__logger.setLevel(level=oppleoSystemConfig.getLogLevelForModule(self.__class__.__module__)) 
         self.evse_reader_thread = None
         self.rfid_reader_thread = None
-        self.stop_event = threading.Event()
+        self.stop_event: Event = threading.Event()
         self.buzzer = buzzer
-        self.__evseOutput = evseOutput
-        self.__evseReader = evseReader
+        self.__evseOutput: EvseOutput|None = evseOutput
+        self.__evseReader: EvseReader|None = evseReader
         self.is_status_charging = False
-        self.__appSocketIO = appSocketIO
+        self.__appSocketIO: SocketIO|None = appSocketIO
         self.device = device
         self.__evse_state = EvseState.EVSE_STATE_UNKNOWN
 
@@ -100,7 +101,8 @@ class ChargerHandlerThread(object):
         global oppleoConfig
 
         try:
-            self.__evseReader.loop(self.stop_event.is_set, lambda evse_state: self.try_handle_charging(evse_state))
+            if self.__evseReader is not None: 
+                self.__evseReader.loop(self.stop_event.is_set, lambda evse_state: self.try_handle_charging(evse_state))
         except Exception as e:
             self.__logger.exception('.evseReaderLoop() - Could not start evse reader loop {}'.format(str(e)))
             oppleoConfig.rgblcThread.error = True
@@ -133,7 +135,7 @@ class ChargerHandlerThread(object):
         rfidData.save()
 
         # Valid rfid card?
-        return rfidData.enabled and not self.isExpired(rfidData.valid_from, rfidData.valid_until)
+        return rfidData is not None and bool(rfidData.enabled) and not self.isExpired(rfidData.valid_from, rfidData.valid_until)
 
 
     # rfid_reader_thread
