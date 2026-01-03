@@ -1899,50 +1899,6 @@ def VehicleApi_GenerateOAuth(token=None):
 
 
 """
-    TODO
-    Current implementation has Tesla make only
-    Current tesla api does not support refreshing token
-"""
-# Always returns json
-@flaskRoutes.route("/rfid_tokens/<path:token>/VehicleApi/RefreshOAuth", methods=["POST"])
-@flaskRoutes.route("/rfid_tokens/<path:token>/VehicleApi/RefreshOAuth/", methods=["POST"])
-@authenticated_resource
-def VehicleApi_RefreshOAuth(token=None):
-    global flaskRoutesLogger
-    flaskRoutesLogger.debug('/rfid_tokens/{}/VehicleApi/RefreshOAuth {}'.format(token, request.method))
-    flaskRoutesLogger.debug('/rfid_tokens/{}/VehicleApi/RefreshOAuth method: {} token: {}'.format(token, request.method, token))
-
-    return jsonify({
-        'status': HTTP_CODE_404_NOT_FOUND, 
-        'reason': 'Not supported'
-        })
-
-
-    rfid_model = RfidModel().get_one(token)
-    if ((token == None) or (rfid_model == None)):
-        # Nope, no token
-        return jsonify({
-            'status': HTTP_CODE_404_NOT_FOUND, 
-            'reason': 'No known RFID token'
-            })
-    # Update for specific token
-    vApi = VehicleApi()
-    if not vApi.refreshToken():
-        return jsonify({
-            'status': HTTP_CODE_500_INTERNAL_SERVER_ERROR,
-            'reason': 'Refresh failed'
-            })
-    # Refresh succeeded, Obtained token
-    UpdateOdometerUtil.copy_token_from_api_to_rfid_model(tesla_api, rfid_model)
-    rfid_model.save()
-
-    return jsonify({
-        'status': HTTP_CODE_200_OK, 
-        'vehicles' : vApi.getVehicleList()
-        })
-
-
-"""
     Specific TeslaPy implementation to generate the login URL
 """
 # Always returns json
