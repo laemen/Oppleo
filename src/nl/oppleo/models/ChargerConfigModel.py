@@ -142,15 +142,13 @@ class ChargerConfigModel(Base):
     def save(self):
         self.__logger.debug(".save()")
         try:
-            with DbSession() as db_session:
-                # Prevent expiration after the session is closed or object is made transient or disconnected
-                # db_session.expire_on_commit = False
-                # No need to 'add', committing this class
+            with DbSession(expire_on_commit=False) as db_session:
                 db_session.add(self)
                 db_session.commit()
-                # Keep it detached
-                # make_transient(self)
-                make_transient_to_detached(self)
+
+                for attr in inspect(self).mapper.column_attrs:
+                    getattr(self, attr.key)
+                db_session.expunge(self)
         except InvalidRequestError as e:
             self.__logger.error(".save() - Could not commit to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
@@ -161,12 +159,8 @@ class ChargerConfigModel(Base):
     def delete(self):
         try:
             with DbSession() as db_session:
-                db_session.expire_on_commit = True
                 db_session.delete(self)
                 db_session.commit()
-                # Keep it detached
-                make_transient(self)
-                make_transient_to_detached(self)
         except InvalidRequestError as e:
             self.__logger.error("Could not delete from {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
@@ -188,10 +182,6 @@ class ChargerConfigModel(Base):
                     for attr in inspect(ChargerConfigModel).mapper.column_attrs:
                         getattr(ccm, attr.key)
                     db_session.expunge(ccm)
-                # Detach (not transient) from database, allows saving in other Threads
-                # https://docs.sqlalchemy.org/en/14/orm/session_api.html#sqlalchemy.orm.make_transient_to_detached
-                # make_transient(ccm)
-                # make_transient_to_detached(ccm)
                 return ccm
         except InvalidRequestError as e:
             ChargerConfigModel.__logger.error("Could not query from {} table in database".format(ChargerConfigModel.__tablename__ ), exc_info=True)

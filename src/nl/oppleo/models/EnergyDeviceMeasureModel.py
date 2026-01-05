@@ -69,6 +69,10 @@ class EnergyDeviceMeasureModel(Base):
             with DbSession() as db_session:
                 db_session.add(self)
                 db_session.commit()
+                
+                for attr in inspect(self).mapper.column_attrs:
+                    getattr(self, attr.key)
+                db_session.expunge(self)
         except InvalidRequestError as e:
             self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:

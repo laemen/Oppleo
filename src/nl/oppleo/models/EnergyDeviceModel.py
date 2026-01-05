@@ -51,6 +51,10 @@ class EnergyDeviceModel(Base):
             with DbSession() as db_session:
                 db_session.add(self)
                 db_session.commit()
+
+                for attr in inspect(self).mapper.column_attrs:
+                    getattr(self, attr.key)
+                db_session.expunge(self)
         except InvalidRequestError as e:
             self.__logger.error("Could not save to {} table in database".format(self.__tablename__ ), exc_info=True)
         except Exception as e:
@@ -129,14 +133,26 @@ class EnergyDeviceModel(Base):
     def duplicate(self, newEnergyDeviceId:str=None):
         try:
             with DbSession() as db_session:
-                # expunge the object from session
-                db_session.expunge(self)
-                # http://docs.sqlalchemy.org/en/rel_1_1/orm/session_api.html#sqlalchemy.orm.session.make_transient
-                make_transient(self)  
-                self.energy_device_id = newEnergyDeviceId
-                db_session.add(self)
+
+                cls = type(self)
+                insp = inspect(self)
+
+                data = {
+                    attr.key: getattr(self, attr.key)
+                    for attr in insp.mapper.column_attrs
+                    if not attr.columns[0].primary_key
+                }
+
+                data["energy_device_id"] = newEnergyDeviceId
+
+                clone = cls(**data)
+
+                db_session.add(clone)
                 db_session.commit()
-                return self
+
+                db_session.expunge(clone)
+                return clone
+
         except InvalidRequestError as e:
             EnergyDeviceModel.__logger.error("Could not duplicate energy device {} to {} in table {} in database ({})".format(self.energy_device_id, newEnergyDeviceId, self.__tablename__, str(e)), exc_info=True)
         except Exception as e:
